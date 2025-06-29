@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Create or Join Room</title>
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <h1>Socket.IO Secret Room</h1>
+
+  <h3>Create Room</h3>
+  <input id="createInput" placeholder="Room name">
+  <button id="createBtn">Create</button>
+
+  <h3>Join Room</h3>
+  <input id="joinInput" placeholder="Room name">
+  <button id="joinBtn">Join</button>
+
+  <p id="status" style="color: red;"></p>
+
+  <script>
+    const socket = io();
+
+    document.getElementById("createBtn").onclick = () => {
+      const room = document.getElementById("createInput").value.trim();
+      if (room) socket.emit("create-room", room);
+    };
+
+    document.getElementById("joinBtn").onclick = () => {
+      const room = document.getElementById("joinInput").value.trim();
+      if (room) socket.emit("join-room", room);
+    };
+
+    socket.on("room-created", ({ roomName, adminToken }) => {
+      localStorage.setItem(`token-${roomName}`, adminToken);
+      window.location.href = `/room/${roomName}`;
+    });
+
+    socket.on("room-joined", (roomName) => {
+      window.location.href = `/room/${roomName}`;
+    });
+
+    socket.on("error-message", (msg) => {
+      document.getElementById("status").textContent = msg;
+    });
+  </script>
+</body>
+</html>

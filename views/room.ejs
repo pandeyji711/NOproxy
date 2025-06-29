@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Room: <%= roomName %></title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; }
+    #secret { font-size: 2rem; color: green; }
+    #countdown { font-size: 1.2rem; color: gray; }
+  </style>
+</head>
+<body>
+  <h2>🔐 Room: <%= roomName %></h2>
+  <p id="adminStatus">Checking...</p>
+  <h3>Secret Code: <span id="secret">Loading...</span></h3>
+  <p>Next code in: <span id="countdown">--</span> seconds</p>
+
+ <script>
+  const socket = io();
+  const roomName = "<%= roomName %>";
+  const token = localStorage.getItem(`token-${roomName}`);
+  const secretDisplay = document.getElementById("secret");
+  const countdownDisplay = document.getElementById("countdown");
+  const statusDisplay = document.getElementById("adminStatus");
+
+  socket.emit("join-room", roomName);
+  let countdownInterval = null;
+
+  // === If admin ===
+  if (token) {
+    statusDisplay.textContent = "🧑‍💼 You are the admin";
+
+    function generateSecret() {
+      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+      socket.emit("secret-code", { roomName, code, token });
+    }
+
+    generateSecret(); // Immediately
+    const intervalId = setInterval(generateSecret, 7000);
+
+    window.addEventListener("beforeunload", () => {
+      clearInterval(intervalId);
+      clearInterval(countdownInterval);
+      localStorage.removeItem(`token-${roomName}`);
+      socket.emit("secret-code", { roomName, code: "❌ Admin Left", token });
+    });
+
+    // Respond to participant request
+    socket.on("request-latest-code", ({ newSocketId }) => {
+      const lastCode = secretDisplay.textContent;
+      const generatedAt = Date.now(); // use your own tracked value if needed
+      socket.emit("send-latest-code", { roomName, code: lastCode, generatedAt, to: newSocketId });
+    });
+  } else {
+    statusDisplay.textContent = "👤 You are a participant";
+  }
+
+  // === All users: when code is received ===
+  socket.on("secret-code", ({ code, generatedAt }) => {
+    secretDisplay.textContent = code;
+
+    // Start synced countdown
+    if (countdownInterval) clearInterval(countdownInterval);
+
+    const now = Date.now();
+    let secondsLeft = 7 - Math.floor((now - generatedAt) / 1000);
+    if (secondsLeft < 0 || secondsLeft > 7) secondsLeft = 7;
+    countdownDisplay.textContent = secondsLeft;
+
+    countdownInterval = setInterval(() => {
+      secondsLeft--;
+      if (secondsLeft <= 0) {
+        clearInterval(countdownInterval);
+        countdownDisplay.textContent = "⏳ Waiting...";
+      } else {
+        countdownDisplay.textContent = secondsLeft;
+      }
+    }, 1000);
+  });
+</script>
+</body>
+</html>
