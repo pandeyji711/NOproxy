@@ -3,80 +3,142 @@
 <head>
   <title>Room: <%= roomName %></title>
   <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     body { font-family: sans-serif; padding: 2rem; }
-    #secret { font-size: 2rem; color: green; }
-    #countdown { font-size: 1.2rem; color: gray; }
+    #adminStatus { font-weight: bold; }
+    #qrcode { margin-top: 20px; }
+    #countdown { font-weight: bold; font-size: 20px; }
   </style>
 </head>
 <body>
   <h2>🔐 Room: <%= roomName %></h2>
   <p id="adminStatus">Checking...</p>
-  <h3>Secret Code: <span id="secret">Loading...</span></h3>
-  <p>Next code in: <span id="countdown">--</span> seconds</p>
 
- <script>
-  const socket = io();
-  const roomName = "<%= roomName %>";
-  const token = localStorage.getItem(`token-${roomName}`);
-  const secretDisplay = document.getElementById("secret");
-  const countdownDisplay = document.getElementById("countdown");
-  const statusDisplay = document.getElementById("adminStatus");
+  <div id="adminArea" style="display: none;">
+    <div id="qrcode"></div>
+    <p>⏳ New QR in: <span id="countdown">--</span> seconds</p>
+      <div id="participantSection" style="margin-top: 30px;">
+    <h3>👥 Participants</h3>
+    <table border="1" id="participantsTable">
+      <thead>
+        <tr><th>#</th><th>Socket ID</th><th>Joined At</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  </div>
 
-  socket.emit("join-room", roomName);
-  let countdownInterval = null;
+  <script>
 
-  // === If admin ===
-  if (token) {
-    statusDisplay.textContent = "🧑‍💼 You are the admin";
+    const roomName = "<%= roomName %>";
+    const token = localStorage.getItem(`token-${roomName}`);
 
-    function generateSecret() {
-      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-      socket.emit("secret-code", { roomName, code, token });
+    const allowed = localStorage.getItem(`allowed-${roomName}`);
+    // Set isAdmin flag early and clearly
+const isAdmin = !!token;
+
+const socket = io({
+  auth: {
+    admin: isAdmin
+  }
+});
+
+    const adminStatus = document.getElementById("adminStatus");
+    const adminArea = document.getElementById("adminArea");
+    const countdownDisplay = document.getElementById("countdown");
+    const qrcodeContainer = document.getElementById("qrcode");
+    let currentSecret = "";
+    let countdownInterval = null;
+
+    // ❌ Block direct access
+    if (!token && allowed !== "yes") {
+      alert("Unauthorized access. Join via QR.");
+      window.location.href = "/";
     }
 
-    generateSecret(); // Immediately
-    const intervalId = setInterval(generateSecret, 7000);
+    socket.emit("join-room", roomName);
 
-    window.addEventListener("beforeunload", () => {
-      clearInterval(intervalId);
-      clearInterval(countdownInterval);
-      localStorage.removeItem(`token-${roomName}`);
-      socket.emit("secret-code", { roomName, code: "❌ Admin Left", token });
-    });
+    if (token) {
+      adminStatus.textContent = "🧑‍💼 You are the admin";
+      adminArea.style.display = "block";
 
-    // Respond to participant request
-    socket.on("request-latest-code", ({ newSocketId }) => {
-      const lastCode = secretDisplay.textContent;
-      const generatedAt = Date.now(); // use your own tracked value if needed
-      socket.emit("send-latest-code", { roomName, code: lastCode, generatedAt, to: newSocketId });
-    });
-  } else {
-    statusDisplay.textContent = "👤 You are a participant";
-  }
+      function generateSecret() {
+        const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const payload = `${roomName}|${code}`;
+        currentSecret = code;
+        socket.emit("secret-code", { roomName, code, token });
 
-  // === All users: when code is received ===
-  socket.on("secret-code", ({ code, generatedAt }) => {
-    secretDisplay.textContent = code;
-
-    // Start synced countdown
-    if (countdownInterval) clearInterval(countdownInterval);
-
-    const now = Date.now();
-    let secondsLeft = 7 - Math.floor((now - generatedAt) / 1000);
-    if (secondsLeft < 0 || secondsLeft > 7) secondsLeft = 7;
-    countdownDisplay.textContent = secondsLeft;
-
-    countdownInterval = setInterval(() => {
-      secondsLeft--;
-      if (secondsLeft <= 0) {
-        clearInterval(countdownInterval);
-        countdownDisplay.textContent = "⏳ Waiting...";
-      } else {
-        countdownDisplay.textContent = secondsLeft;
+        qrcodeContainer.innerHTML = "";
+        new QRCode(qrcodeContainer, {
+          text: payload,
+          width: 256,
+          height: 256,
+        });
       }
-    }, 1000);
-  });
-</script>
+
+      generateSecret();
+      const intervalId = setInterval(generateSecret, 15000);
+
+      window.addEventListener("beforeunload", () => {
+        clearInterval(intervalId);
+        clearInterval(countdownInterval);
+        localStorage.removeItem(`token-${roomName}`);
+        localStorage.removeItem(`allowed-${roomName}`);
+        socket.emit("secret-code", { roomName, code: "❌ Admin Left", token });
+      });
+    } else {
+      adminStatus.textContent = "👤 You are a participant";
+    }
+
+    socket.on("secret-code", ({ code, generatedAt }) => {
+      currentSecret = code;
+
+      if (countdownInterval) clearInterval(countdownInterval);
+      let secondsLeft = 15 - Math.floor((Date.now() - generatedAt) / 1000);
+      if (secondsLeft <= 0 || secondsLeft > 15) secondsLeft = 15;
+      countdownDisplay.textContent = secondsLeft;
+
+      countdownInterval = setInterval(() => {
+        secondsLeft--;
+        if (secondsLeft <= 0) {
+          countdownDisplay.textContent = "0";
+          clearInterval(countdownInterval);
+        } else {
+          countdownDisplay.textContent = secondsLeft;
+        }
+      }, 1000);
+    });
+
+    socket.on("request-latest-code", ({ newSocketId }) => {
+      socket.emit("send-latest-code", {
+        roomName,
+        code: currentSecret,
+        generatedAt: Date.now(),
+        to: newSocketId,
+      });
+    });
+
+    //join participents table addition
+    const participantsTable = document.querySelector("#participantsTable tbody");
+
+socket.on("new-participant", ({ id, joinedAt }) => {
+  console.log("New participant received by:", isAdmin ? "Admin" : "Participant", id);
+  if (!isAdmin) return;
+
+  const row = document.createElement("tr");
+  row.innerHTML = `
+    <td>${participantsTable.children.length + 1}</td>
+    <td>${id}</td>
+    <td>${joinedAt}</td>
+  `;
+  participantsTable.appendChild(row);
+});
+
+    window.addEventListener("unload", () => {
+      localStorage.removeItem(`token-${roomName}`);
+      localStorage.removeItem(`allowed-${roomName}`);
+    });
+  </script>
 </body>
 </html>

@@ -7,29 +7,26 @@ const jwt = require("jsonwebtoken");
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server);
-
-const SECRET = "super-secret-key"; // Replace with .env in prod
+const SECRET = "supersecretkey";
 const createdRooms = new Set();
+const adminCodeState = {}; // { roomName: { code, generatedAt } }
 
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.use(express.static(path.join(__dirname, "public")));
 
-app.get("/", (req, res) => {
-  res.render("index");
-});
+app.get("/", (req, res) => res.render("index"));
 
 app.get("/room/:roomName", (req, res) => {
-  res.render("room", { roomName: req.params.roomName });
+  const roomName = req.params.roomName;
+  if (!createdRooms.has(roomName)) return res.redirect("/");
+  res.render("room", { roomName });
 });
-let adminCodeState = {}; // { roomName: { code, generatedAt } }
 
 io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
-
   socket.on("create-room", (roomName) => {
     if (createdRooms.has(roomName)) {
-      socket.emit("error-message", "Room already exists.");
+      socket.emit("error-message", "Room already exists");
     } else {
       createdRooms.add(roomName);
       socket.join(roomName);
@@ -40,14 +37,37 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("join-room", (roomName) => {
+  socket.on("join-room", async (roomName) => {
     if (!createdRooms.has(roomName)) {
-      socket.emit("error-message", "Room does not exist.");
+      socket.emit("error-message", "Room does not exist");
     } else {
       socket.join(roomName);
-      socket.emit("room-joined", roomName);
+      // socket.emit("room-joined", roomName);
+      // ✅ Request latest secret code from admin
+      socket
+        .to(roomName)
+        .emit("request-latest-code", { newSocketId: socket.id });
 
-      // Ask admin for current code
+      // ✅ Emit only for participants (skip admin's own socket)
+      try {
+        const roomSockets = await io.in(roomName).fetchSockets();
+
+        const adminSocket = roomSockets.find(
+          (s) => s.handshake.auth?.admin === true
+        );
+
+        // Skip if the joining socket is admin themselves
+        if (adminSocket && socket.id !== adminSocket.id) {
+          adminSocket.emit("new-participant", {
+            id: socket.id,
+            joinedAt: new Date().toLocaleTimeString(),
+          });
+        }
+      } catch (err) {
+        console.error("Error finding admin socket:", err);
+      }
+
+      // Request latest secret
       socket
         .to(roomName)
         .emit("request-latest-code", { newSocketId: socket.id });
@@ -60,25 +80,18 @@ io.on("connection", (socket) => {
       if (payload.room === roomName && payload.admin) {
         const generatedAt = Date.now();
         adminCodeState[roomName] = { code, generatedAt };
-
-        // Broadcast to room
         io.to(roomName).emit("secret-code", { code, generatedAt });
       }
-    } catch (err) {
-      socket.emit("error-message", "Token verification failed.");
+    } catch (e) {
+      socket.emit("error-message", "Token verification failed");
     }
   });
 
-  // When admin receives a request to share latest code
   socket.on("send-latest-code", ({ roomName, code, generatedAt, to }) => {
     io.to(to).emit("secret-code", { code, generatedAt });
   });
-
-  socket.on("disconnect", () => {
-    console.log("Disconnected:", socket.id);
-  });
 });
 
-server.listen(3000, () => {
-  console.log("Server running at http://localhost:3000");
-});
+server.listen(3000, () =>
+  console.log("✅ Server running at http://localhost:3000")
+);

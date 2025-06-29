@@ -1,33 +1,38 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Create or Join Room</title>
+  <title>QR Room Join</title>
   <script src="/socket.io/socket.io.js"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    #reader { width: 300px; margin-top: 20px; }
+    #status { font-weight: bold; margin-top: 1rem; color: green; }
+  </style>
 </head>
 <body>
-  <h1>Socket.IO Secret Room</h1>
+  <h1>🔐 QR Room System</h1>
 
-  <h3>Create Room</h3>
-  <input id="createInput" placeholder="Room name">
-  <button id="createBtn">Create</button>
+  <!-- Admin Section -->
+  <h3>Create Room (Admin)</h3>
+  <input id="createInput" placeholder="Enter room name">
+  <button id="createBtn">Create Room</button>
 
-  <h3>Join Room</h3>
-  <input id="joinInput" placeholder="Room name">
-  <button id="joinBtn">Join</button>
+  <!-- Participant Section -->
+  <h3>Join Room (Participant)</h3>
+  <button id="scanBtn">📷 Scan QR to Join</button>
+  <div id="reader" style="display:none;"></div>
 
-  <p id="status" style="color: red;"></p>
+  <p id="status"></p>
+   
 
   <script>
     const socket = io();
+    const status = document.getElementById("status");
 
     document.getElementById("createBtn").onclick = () => {
       const room = document.getElementById("createInput").value.trim();
-      if (room) socket.emit("create-room", room);
-    };
-
-    document.getElementById("joinBtn").onclick = () => {
-      const room = document.getElementById("joinInput").value.trim();
-      if (room) socket.emit("join-room", room);
+      if (!room) return status.textContent = "Please enter a room name";
+      socket.emit("create-room", room);
     };
 
     socket.on("room-created", ({ roomName, adminToken }) => {
@@ -35,13 +40,42 @@
       window.location.href = `/room/${roomName}`;
     });
 
-    socket.on("room-joined", (roomName) => {
-      window.location.href = `/room/${roomName}`;
-    });
+    socket.on("error-message", msg => status.textContent = msg);
 
-    socket.on("error-message", (msg) => {
-      document.getElementById("status").textContent = msg;
-    });
+    document.getElementById("scanBtn").onclick = () => {
+      document.getElementById("reader").style.display = "block";
+      Html5Qrcode.getCameras().then(cameras => {
+        if (cameras && cameras.length) {
+          const html5Qr = new Html5Qrcode("reader");
+          html5Qr.start(
+            cameras[0].id,
+            { fps: 10, qrbox: 250 },
+            qrContent => {
+              const [roomName, scannedSecret] = qrContent.split("|");
+              if (!roomName || !scannedSecret) {
+                status.textContent = "❌ Invalid QR format";
+                return;
+              }
+              socket.emit("join-room", roomName);
+              socket.once("secret-code", ({ code }) => {
+                if (scannedSecret === code) {
+                  localStorage.setItem(`allowed-${roomName}`, "yes");
+                  html5Qr.stop().then(() => {
+                    status.textContent = "✅ QR matched. Redirecting...";
+                    window.location.href = `/room/${roomName}`;
+                  });
+                } else {
+                  status.textContent = "❌ Invalid or expired QR";
+                }
+              });
+            },
+            err => {} // ignore scan errors
+          );
+        }
+      }).catch(err => {
+        status.textContent = "❌ Camera not available";
+      });
+    };
   </script>
 </body>
 </html>
