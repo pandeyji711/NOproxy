@@ -11,6 +11,7 @@ const io = socketIO(server);
 const SECRET = "supersecretkey";
 const createdRooms = new Set();
 const adminCodeState = {}; // { roomName: { code, generatedAt } }
+const adminSockets = new Map(); // NEW: { roomName => socket.id }
 const validEntryKeys = new Map();
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
@@ -36,6 +37,12 @@ app.get("/success", (req, res) => {
 
 // Socket.IO
 io.on("connection", (socket) => {
+  const { admin } = socket.handshake.auth || {};
+  if (admin === true && socket.handshake.query?.room) {
+    const roomName = socket.handshake.query.room;
+    adminSockets.set(roomName, socket.id);
+    // console.log("✅ Registered new admin socket:", socket.id, "for", roomName);
+  }
   // Admin creates room
   socket.on("create-room", (roomName) => {
     if (createdRooms.has(roomName)) {
@@ -43,6 +50,7 @@ io.on("connection", (socket) => {
     } else {
       createdRooms.add(roomName);
       socket.join(roomName);
+      // adminSockets.set(roomName, socket.id); // 🆕 Track admin socket ID
 
       const token = jwt.sign({ room: roomName, admin: true }, SECRET, {
         expiresIn: "1h",
@@ -122,7 +130,7 @@ io.on("connection", (socket) => {
       // for (const [key, value] of validEntryKeys.entries()) {
       //   console.log(`${key}: [${[...value]}]`);
       // }
-      console.log(validEntryKeys.get(roomName).has(entryKey));
+      // console.log(validEntryKeys.get(roomName).has(entryKey));
       const isValid =
         validEntryKeys.has(roomName) &&
         validEntryKeys.get(roomName).has(entryKey);
@@ -173,6 +181,21 @@ io.on("connection", (socket) => {
       validEntryKeys.set(roomName, new Set());
     }
     validEntryKeys.get(roomName).add(entryKey);
+  });
+
+  socket.on("disconnect", () => {
+    for (const [roomName, adminSocketId] of adminSockets.entries()) {
+      if (socket.id === adminSocketId) {
+        // console.log(`🛑 Admin left room: ${roomName} — cleaning up`);
+
+        createdRooms.delete(roomName);
+        delete adminCodeState[roomName];
+        adminSockets.delete(roomName);
+        validEntryKeys.delete(roomName);
+
+        io.to(roomName).emit("room-closed");
+      }
+    }
   });
 });
 

@@ -50,11 +50,9 @@ if (!token && (allowed !== "yes" || submitted === "yes")) {
 }
     // Set isAdmin flag early and clearly
 const isAdmin = !!token;
-
 const socket = io({
-  auth: {
-    admin: isAdmin
-  }
+  auth: { admin: true },
+  query: { room: roomName }  // 👈 this is how server detects which room
 });
 
     const adminStatus = document.getElementById("adminStatus");
