@@ -37,7 +37,7 @@
   </div>
 
   <script>
-
+const validEntryKeys = new Map();
     const roomName = "<%= roomName %>";
     const token = localStorage.getItem(`token-${roomName}`);
 
@@ -136,7 +136,8 @@ const socket = io({
 
 let participantIndex = 1;
 
-socket.on("new-participant", ({ id, joinedAt, name, roll, admission }) => {
+socket.on("new-participant", ({ id, joinedAt, name, roll, entryKey,admission }) => {
+    // console.log(validEntryKeys.get(roomName).has(entryKey))
   if (!isAdmin) return;
 
   const row = document.createElement("tr");
@@ -150,6 +151,10 @@ socket.on("new-participant", ({ id, joinedAt, name, roll, admission }) => {
   `;
   participantsTable.appendChild(row);
 });
+window.addEventListener('beforeunload', function () {
+  localStorage.clear();
+});
+
   </script>
 </body>
 </html>

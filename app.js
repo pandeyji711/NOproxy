@@ -11,7 +11,7 @@ const io = socketIO(server);
 const SECRET = "supersecretkey";
 const createdRooms = new Set();
 const adminCodeState = {}; // { roomName: { code, generatedAt } }
-
+const validEntryKeys = new Map();
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.use(express.static(path.join(__dirname, "public")));
@@ -116,7 +116,22 @@ io.on("connection", (socket) => {
   // ✅ Participant submits details via form
   socket.on(
     "participant-details",
-    async ({ roomName, name, roll, admission }) => {
+    async ({ roomName, name, roll, admission, entryKey }) => {
+      const et = entryKey;
+      // console.log(et);
+      // for (const [key, value] of validEntryKeys.entries()) {
+      //   console.log(`${key}: [${[...value]}]`);
+      // }
+      console.log(validEntryKeys.get(roomName).has(entryKey));
+      const isValid =
+        validEntryKeys.has(roomName) &&
+        validEntryKeys.get(roomName).has(entryKey);
+
+      if (!isValid) {
+        socket.emit("error-message", "❌ Invalid or expired entry key");
+        return;
+      }
+
       try {
         const roomSockets = await io.in(roomName).fetchSockets();
         const adminSocket = roomSockets.find(
@@ -124,19 +139,41 @@ io.on("connection", (socket) => {
         );
 
         if (adminSocket) {
+          // ✅ Send to admin only
           adminSocket.emit("new-participant", {
             id: socket.id,
-            joinedAt: new Date().toLocaleTimeString(),
             name,
             roll,
             admission,
+            entryKey,
+            joinedAt: new Date().toLocaleTimeString(),
           });
+
+          // ✅ Confirm entry to this participant only
+          socket.emit("entry-confirmed");
+
+          // Optional log
+          console.log(`✅ Entry confirmed for: ${socket.id}`);
+        } else {
+          socket.emit("error-message", "Admin not available in room");
         }
+
+        // 🧼 Remove key after use
+        validEntryKeys.get(roomName).delete(entryKey);
       } catch (err) {
-        console.error("Error handling participant-details:", err);
+        console.error("❌ Error during entry submission:", err);
+        socket.emit("error-message", "Server error while submitting");
       }
     }
   );
+
+  //register socket haldlar
+  socket.on("register-entry-key", ({ roomName, entryKey }) => {
+    if (!validEntryKeys.has(roomName)) {
+      validEntryKeys.set(roomName, new Set());
+    }
+    validEntryKeys.get(roomName).add(entryKey);
+  });
 });
 
 server.listen(3000, () =>

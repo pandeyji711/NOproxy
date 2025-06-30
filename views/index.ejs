@@ -69,6 +69,11 @@
                 // ✅ Store allowed flag
                 localStorage.setItem(`allowed-${roomName}`, "yes");
 
+                //code
+                const generatedKey = Math.random().toString(36).substring(2, 9); // 7-char
+                localStorage.setItem(`entryKey-${roomName}`, generatedKey);
+                socket.emit("register-entry-key", { roomName, entryKey: generatedKey });
+
                 html5Qr.stop().then(() => {
                   status.textContent = "✅ Verified! Redirecting...";
                   // ✅ Redirect to form, not room directly
@@ -88,6 +93,10 @@
       status.textContent = "❌ Camera not available";
     });
   };
+//   window.addEventListener('beforeunload', function () {
+//   localStorage.clear();
+// });
+
 </script>
 
 </body>

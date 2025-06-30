@@ -23,11 +23,16 @@
 
   <script>
     const roomName = "<%= roomName %>";
-
+const entryKey = localStorage.getItem(`entryKey-${roomName}`);
     // ⛔ Prevent access if already submitted
 const submitted = localStorage.getItem(`submitted-${roomName}`);
+if(!entryKey)
+{
+    alert("entryKey is missing Access denied.");
+  window.location.href = "/";
+}
 if (submitted === "yes") {
-  alert("You already submitted your details. Access denied.");
+  alert("You already submitted your details ! Access denied.");
   window.location.href = "/";
 }
 
@@ -52,19 +57,34 @@ if (submitted === "yes") {
     name,
     roll,
     admission,
+    entryKey,
   });
 
-  // ✅ Save submission flag
-  localStorage.setItem(`submitted-${roomName}`, "yes");
+  // // ✅ Save submission flag
+  // localStorage.setItem(`submitted-${roomName}`, "yes");
 
-  // ✅ Clean up ALL localStorage related to participant access
-  localStorage.removeItem(`allowed-${roomName}`);
-  localStorage.removeItem(`token-${roomName}`);
-  localStorage.removeItem(`submitted-${roomName}`); // optional if you want no trace
+  // // ✅ Clean up ALL localStorage related to participant access
+  // localStorage.removeItem(`allowed-${roomName}`);
+  //   localStorage.removeItem(`entryKey-${roomName}`);
+  // localStorage.removeItem(`token-${roomName}`);
+  // localStorage.removeItem(`submitted-${roomName}`); // optional if you want no trace
 
-  // ✅ Redirect to success page
-  window.location.href = "/success";
+  // // ✅ Redirect to success page
+  // window.location.href = "/success";
 };
+socket.on("entry-confirmed", () => {
+  // ✅ Clear local storage for this room
+  const room = "<%= roomName %>";
+  localStorage.removeItem(`allowed-${room}`);
+  localStorage.removeItem(`entryKey-${room}`);
+  localStorage.setItem(`submitted-${room}`, "yes");
+
+  // Redirect
+  window.location.href = "/success";
+});
+window.addEventListener('beforeunload', function () {
+  localStorage.clear();
+});
 
   </script>
 </body>
