@@ -26,56 +26,69 @@
    
 
   <script>
-    const socket = io();
-    const status = document.getElementById("status");
+  const socket = io();
+  const status = document.getElementById("status");
 
-    document.getElementById("createBtn").onclick = () => {
-      const room = document.getElementById("createInput").value.trim();
-      if (!room) return status.textContent = "Please enter a room name";
-      socket.emit("create-room", room);
-    };
+  // Room creation logic (Admin)
+  document.getElementById("createBtn").onclick = () => {
+    const room = document.getElementById("createInput").value.trim();
+    if (!room) return status.textContent = "Please enter a room name";
+    socket.emit("create-room", room);
+  };
 
-    socket.on("room-created", ({ roomName, adminToken }) => {
-      localStorage.setItem(`token-${roomName}`, adminToken);
-      window.location.href = `/room/${roomName}`;
-    });
+  socket.on("room-created", ({ roomName, adminToken }) => {
+    localStorage.setItem(`token-${roomName}`, adminToken);
+    window.location.href = `/room/${roomName}`;
+  });
 
-    socket.on("error-message", msg => status.textContent = msg);
+  socket.on("error-message", msg => status.textContent = msg);
 
-    document.getElementById("scanBtn").onclick = () => {
-      document.getElementById("reader").style.display = "block";
-      Html5Qrcode.getCameras().then(cameras => {
-        if (cameras && cameras.length) {
-          const html5Qr = new Html5Qrcode("reader");
-          html5Qr.start(
-            cameras[0].id,
-            { fps: 10, qrbox: 250 },
-            qrContent => {
-              const [roomName, scannedSecret] = qrContent.split("|");
-              if (!roomName || !scannedSecret) {
-                status.textContent = "❌ Invalid QR format";
-                return;
+  // QR Scanner logic (Participant)
+  document.getElementById("scanBtn").onclick = () => {
+    document.getElementById("reader").style.display = "block";
+
+    Html5Qrcode.getCameras().then(cameras => {
+      if (cameras && cameras.length) {
+        const html5Qr = new Html5Qrcode("reader");
+        html5Qr.start(
+          cameras[0].id,
+          { fps: 10, qrbox: 250 },
+          qrContent => {
+            const [roomName, scannedSecret] = qrContent.split("|");
+
+            if (!roomName || !scannedSecret) {
+              status.textContent = "❌ Invalid QR format";
+              return;
+            }
+
+            // ✅ Verify with server
+            socket.emit("verify-secret", { roomName, code: scannedSecret });
+
+            socket.once("verified", ({ success }) => {
+              if (success) {
+                // ✅ Store allowed flag
+                localStorage.setItem(`allowed-${roomName}`, "yes");
+
+                html5Qr.stop().then(() => {
+                  status.textContent = "✅ Verified! Redirecting...";
+                  // ✅ Redirect to form, not room directly
+                  window.location.href = `/form/${roomName}`;
+                });
+              } else {
+                status.textContent = "❌ Invalid or expired QR";
               }
-              socket.emit("join-room", roomName);
-              socket.once("secret-code", ({ code }) => {
-                if (scannedSecret === code) {
-                  localStorage.setItem(`allowed-${roomName}`, "yes");
-                  html5Qr.stop().then(() => {
-                    status.textContent = "✅ QR matched. Redirecting...";
-                    window.location.href = `/room/${roomName}`;
-                  });
-                } else {
-                  status.textContent = "❌ Invalid or expired QR";
-                }
-              });
-            },
-            err => {} // ignore scan errors
-          );
-        }
-      }).catch(err => {
-        status.textContent = "❌ Camera not available";
-      });
-    };
-  </script>
+            });
+          },
+          err => {
+            // ignore scan errors
+          }
+        );
+      }
+    }).catch(err => {
+      status.textContent = "❌ Camera not available";
+    });
+  };
+</script>
+
 </body>
 </html>

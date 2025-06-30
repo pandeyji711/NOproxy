@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Submit Details - <%= roomName %></title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; }
+    form { display: flex; flex-direction: column; max-width: 300px; gap: 1rem; }
+    input, button { padding: 0.5rem; font-size: 1rem; }
+    h2 { margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <h2>Submit Details for Room: <%= roomName %></h2>
+
+  <form id="participantForm">
+    <input id="name" type="text" placeholder="Full Name" required />
+    <input id="roll" type="text" placeholder="Roll Number" required />
+    <input id="admission" type="text" placeholder="Admission ID" required />
+    <button type="submit">Submit</button>
+  </form>
+
+  <script>
+    const roomName = "<%= roomName %>";
+
+    // ⛔ Prevent access if already submitted
+const submitted = localStorage.getItem(`submitted-${roomName}`);
+if (submitted === "yes") {
+  alert("You already submitted your details. Access denied.");
+  window.location.href = "/";
+}
+
+    const socket = io();
+    const form = document.getElementById("participantForm");
+
+  form.onsubmit = (e) => {
+  e.preventDefault();
+
+  const name = document.getElementById("name").value.trim();
+  const roll = document.getElementById("roll").value.trim();
+  const admission = document.getElementById("admission").value.trim();
+
+  if (!name || !roll || !admission) {
+    alert("All fields are required.");
+    return;
+  }
+
+  // Send participant data to server
+  socket.emit("participant-details", {
+    roomName,
+    name,
+    roll,
+    admission,
+  });
+
+  // ✅ Save submission flag
+  localStorage.setItem(`submitted-${roomName}`, "yes");
+
+  // ✅ Clean up ALL localStorage related to participant access
+  localStorage.removeItem(`allowed-${roomName}`);
+  localStorage.removeItem(`token-${roomName}`);
+  localStorage.removeItem(`submitted-${roomName}`); // optional if you want no trace
+
+  // ✅ Redirect to success page
+  window.location.href = "/success";
+};
+
+  </script>
+</body>
+</html>

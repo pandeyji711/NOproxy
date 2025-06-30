@@ -21,9 +21,16 @@
       <div id="participantSection" style="margin-top: 30px;">
     <h3>👥 Participants</h3>
     <table border="1" id="participantsTable">
-      <thead>
-        <tr><th>#</th><th>Socket ID</th><th>Joined At</th></tr>
-      </thead>
+   <thead>
+  <tr>
+    <th>#</th>
+    <th>Name</th>
+    <th>Roll No</th>
+    <th>Admission ID</th>
+    <th>Socket ID</th>
+    <th>Joined At</th>
+  </tr>
+</thead>
       <tbody></tbody>
     </table>
   </div>
@@ -35,6 +42,11 @@
     const token = localStorage.getItem(`token-${roomName}`);
 
     const allowed = localStorage.getItem(`allowed-${roomName}`);
+    const submitted = localStorage.getItem(`submitted-${roomName}`);
+if (!token && (allowed !== "yes" || submitted === "yes")) {
+  alert("Access denied.");
+  window.location.href = "/";
+}
     // Set isAdmin flag early and clearly
 const isAdmin = !!token;
 
@@ -120,25 +132,24 @@ const socket = io({
     });
 
     //join participents table addition
-    const participantsTable = document.querySelector("#participantsTable tbody");
+   const participantsTable = document.querySelector("#participantsTable tbody");
 
-socket.on("new-participant", ({ id, joinedAt }) => {
-  console.log("New participant received by:", isAdmin ? "Admin" : "Participant", id);
+let participantIndex = 1;
+
+socket.on("new-participant", ({ id, joinedAt, name, roll, admission }) => {
   if (!isAdmin) return;
 
   const row = document.createElement("tr");
   row.innerHTML = `
-    <td>${participantsTable.children.length + 1}</td>
+    <td>${participantIndex++}</td>
+    <td>${name || "-"}</td>
+    <td>${roll || "-"}</td>
+    <td>${admission || "-"}</td>
     <td>${id}</td>
     <td>${joinedAt}</td>
   `;
   participantsTable.appendChild(row);
 });
-
-    window.addEventListener("unload", () => {
-      localStorage.removeItem(`token-${roomName}`);
-      localStorage.removeItem(`allowed-${roomName}`);
-    });
   </script>
 </body>
 </html>
