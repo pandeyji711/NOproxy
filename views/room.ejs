@@ -28,6 +28,9 @@
     <th>Name</th>
     <th>Roll No</th>
     <th>Admission ID</th>
+     <th>Location</th>
+          <th>Selfie</th>
+          <th>distance</th>
     <th>Socket ID</th>
     <th>Joined At</th>
   </tr>
@@ -38,8 +41,23 @@
   </div>
 
   <script>
-const validEntryKeys = new Map();
+       
 
+const validEntryKeys = new Map();
+ let userLocation = null;
+ async  function  getLocation() {
+  navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+    const  { latitude, longitude } = await pos.coords;
+          userLocation={ latitude, longitude };
+           console.log(userLocation);
+      }, () => {
+        document.getElementById("address").innerText = "Permission denied or unavailable.";
+      });
+
+    // console.log(userLocation);
+  }
+ getLocation();
     const roomName = "<%= roomName %>";
     const time="<%= time %>";
      const time1=time*1000;
@@ -133,22 +151,28 @@ const socket = io({
         to: newSocketId,
       });
     });
-
+  
     //join participents table addition
    const participantsTable = document.querySelector("#participantsTable tbody");
 
 let participantIndex = 1;
 
-socket.on("new-participant", ({ id, joinedAt, name, roll, entryKey,admission }) => {
+socket.on("new-participant", ({ id, joinedAt, name, roll, entryKey,admission, location, selfie  ,latitudex,
+        longitudex }) => {
     // console.log(validEntryKeys.get(roomName).has(entryKey))
+           // Request location
   if (!isAdmin) return;
-
+      
+       const distance = getDistanceInKm(userLocation.latitude, userLocation.longitude, latitudex, longitudex);
   const row = document.createElement("tr");
   row.innerHTML = `
     <td>${participantIndex++}</td>
     <td>${name || "-"}</td>
     <td>${roll || "-"}</td>
     <td>${admission || "-"}</td>
+    <td>${location}</td>
+        <td><img class="selfie" src="${selfie}" alt="Selfie" /></td>
+        <td>Participant is ${distance.toFixed(2)} km away from admin.</td>
     <td>${id}</td>
     <td>${joinedAt}</td>
   `;
@@ -157,6 +181,24 @@ socket.on("new-participant", ({ id, joinedAt, name, roll, entryKey,admission }) 
 window.addEventListener('beforeunload', function () {
   localStorage.clear();
 });
+
+
+//to calculate distance
+
+function getDistanceInKm(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Radius of the Earth in kilometers
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) *
+    Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // Distance in km
+}
 
   </script>
 </body>

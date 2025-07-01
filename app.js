@@ -125,7 +125,17 @@ io.on("connection", (socket) => {
   // ✅ Participant submits details via form
   socket.on(
     "participant-details",
-    async ({ roomName, name, roll, admission, entryKey }) => {
+    async ({
+      roomName,
+      name,
+      roll,
+      admission,
+      entryKey,
+      selfie,
+      location,
+      latitudex,
+      longitudex,
+    }) => {
       const et = entryKey;
       // console.log(et);
       // for (const [key, value] of validEntryKeys.entries()) {
@@ -155,6 +165,10 @@ io.on("connection", (socket) => {
             roll,
             admission,
             entryKey,
+            location,
+            selfie,
+            latitudex,
+            longitudex,
             joinedAt: new Date().toLocaleTimeString(),
           });
 
@@ -162,7 +176,7 @@ io.on("connection", (socket) => {
           socket.emit("entry-confirmed");
 
           // Optional log
-          console.log(`✅ Entry confirmed for: ${socket.id}`);
+          // console.log(`✅ Entry confirmed for: ${socket.id}`);
         } else {
           socket.emit("error-message", "Admin not available in room");
         }
