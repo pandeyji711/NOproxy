@@ -23,7 +23,8 @@ app.get("/", (req, res) => res.render("index"));
 app.get("/room/:roomName", (req, res) => {
   const roomName = req.params.roomName;
   if (!createdRooms.has(roomName)) return res.redirect("/");
-  res.render("room", { roomName });
+  const time = parseInt(req.query.time) || 3;
+  res.render("room", { roomName, time });
 });
 
 app.get("/form/:roomName", (req, res) => {

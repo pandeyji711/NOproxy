@@ -39,7 +39,10 @@
 
   <script>
 const validEntryKeys = new Map();
+
     const roomName = "<%= roomName %>";
+    const time="<%= time %>";
+     const time1=time*1000;
     const token = localStorage.getItem(`token-${roomName}`);
 
     const allowed = localStorage.getItem(`allowed-${roomName}`);
@@ -89,7 +92,8 @@ const socket = io({
       }
 
       generateSecret();
-      const intervalId = setInterval(generateSecret, 15000);
+    
+      const intervalId = setInterval(generateSecret, time1);
 
       window.addEventListener("beforeunload", () => {
         clearInterval(intervalId);
@@ -102,12 +106,12 @@ const socket = io({
       adminStatus.textContent = "👤 You are a participant";
     }
 
-    socket.on("secret-code", ({ code, generatedAt }) => {
+    socket.on("secret-code", ({ code, generatedAt ,second}) => {
       currentSecret = code;
-
+      
       if (countdownInterval) clearInterval(countdownInterval);
-      let secondsLeft = 15 - Math.floor((Date.now() - generatedAt) / 1000);
-      if (secondsLeft <= 0 || secondsLeft > 15) secondsLeft = 15;
+      let secondsLeft = time - Math.floor((Date.now() - generatedAt) / 1000);
+      if (secondsLeft <= 0 || secondsLeft > time) secondsLeft = time;
       countdownDisplay.textContent = secondsLeft;
 
       countdownInterval = setInterval(() => {

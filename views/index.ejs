@@ -16,7 +16,8 @@
   <h3>Create Room (Admin)</h3>
   <input id="createInput" placeholder="Enter room name">
   <button id="createBtn">Create Room</button>
-
+  <h3>intervel in seconds</h3>
+ <input id="time" type="number">
   <!-- Participant Section -->
   <h3>Join Room (Participant)</h3>
   <button id="scanBtn">📷 Scan QR to Join</button>
@@ -38,7 +39,9 @@
 
   socket.on("room-created", ({ roomName, adminToken }) => {
     localStorage.setItem(`token-${roomName}`, adminToken);
-    window.location.href = `/room/${roomName}`;
+     const time=document.getElementById("time").value;
+                // alert(time);
+    window.location.href = `/room/${roomName}?time=${time}`;
   });
 
   socket.on("error-message", msg => status.textContent = msg);
@@ -81,6 +84,7 @@ document.getElementById("scanBtn").onclick = () => {
 
               html5Qr.stop().then(() => {
                 status.textContent = "✅ Verified! Redirecting...";
+               
                 window.location.href = `/form/${roomName}`;
               });
             } else {
