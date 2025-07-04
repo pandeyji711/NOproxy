@@ -5,6 +5,8 @@
  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
   <style>
     body { font-family: sans-serif; padding: 2rem; }
     #adminStatus { font-weight: bold; }
@@ -39,9 +41,63 @@
     </table>
   </div>
   </div>
+<button id="downloadExcel">⬇️ Download Excel</button>
 
   <script>
-       
+document.getElementById("downloadExcel").onclick = () => {
+    // Dummy participant data — replace with your actual data
+      const roomKey = `participants-${roomName}`;
+  const participantsData = JSON.parse(localStorage.getItem(roomKey)) || [];
+
+  if (participantsData.length === 0) {
+    alert("No data available.");
+    return;
+  }
+
+  const formattedData = participantsData.map(p => ({
+  "Name": p.name,
+  "Roll No.": p.roll,
+  "Admission No.": p.admission,
+  "Submission Time": p.joinedAt,
+  "Location": p.location,
+  "Distance":p.twodigitdis,
+}));
+
+
+    // 1. Create worksheet and workbook
+    const worksheet = XLSX.utils.json_to_sheet(formattedData);
+
+    // 2. Auto width calculation
+    const columnWidths = Object.keys(participantsData[0]).map(key => {
+      const maxLength = Math.max(
+        key.length,
+        ...participantsData.map(p => (p[key] ? p[key].toString().length : 0))
+      );
+      return { wch: maxLength + 1 }; // +2 padding
+    });
+    worksheet['!cols'] = columnWidths;
+
+    // 3. Workbook creation
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Participant Report");
+
+    // 4. Styling: Add bold headers (manually mark them)
+    const headerRange = XLSX.utils.decode_range(worksheet['!ref']);
+    for (let C = headerRange.s.c; C <= headerRange.e.c; ++C) {
+      const cellAddress = XLSX.utils.encode_cell({ c: C, r: 0 });
+      if (worksheet[cellAddress]) {
+        worksheet[cellAddress].s = {
+          font: { bold: true },
+          fill: { fgColor: { rgb: "DCE6F1" } },
+          alignment: { horizontal: "center" }
+        };
+      }
+    }
+
+    // 5. Export to file
+    XLSX.writeFile(workbook, "NoProxy_Attendance_Report.xlsx", { cellStyles: true });
+  };
+
 
 const validEntryKeys = new Map();
  let userLocation = null;
@@ -161,9 +217,16 @@ socket.on("new-participant", ({ id, joinedAt, name, roll, entryKey,admission, lo
         longitudex }) => {
     // console.log(validEntryKeys.get(roomName).has(entryKey))
            // Request location
+
   if (!isAdmin) return;
       
        const distance = getDistanceInKm(userLocation.latitude, userLocation.longitude, latitudex, longitudex);
+       const twodigitdis=distance.toFixed(2);
+         let roomKey = `participants-${roomName}`;
+         const data={  name, roll,admission, joinedAt,location, twodigitdis };
+  let list = JSON.parse(localStorage.getItem(roomKey)) || [];
+  list.push(data);
+  localStorage.setItem(roomKey, JSON.stringify(list));
   const row = document.createElement("tr");
   row.innerHTML = `
     <td>${participantIndex++}</td>
