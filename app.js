@@ -125,17 +125,7 @@ io.on("connection", (socket) => {
   // ✅ Participant submits details via form
   socket.on(
     "participant-details",
-    async ({
-      roomName,
-      name,
-      roll,
-      admission,
-      entryKey,
-      selfie,
-      location,
-      latitudex,
-      longitudex,
-    }) => {
+    async ({ roomName, name, roll, admission, entryKey, selfie }) => {
       const et = entryKey;
       // console.log(et);
       // for (const [key, value] of validEntryKeys.entries()) {
@@ -160,16 +150,11 @@ io.on("connection", (socket) => {
         if (adminSocket) {
           // ✅ Send to admin only
           adminSocket.emit("new-participant", {
-            id: socket.id,
             name,
             roll,
             admission,
             entryKey,
-            location,
             selfie,
-            latitudex,
-            longitudex,
-            joinedAt: new Date().toLocaleTimeString(),
           });
 
           // ✅ Confirm entry to this participant only
