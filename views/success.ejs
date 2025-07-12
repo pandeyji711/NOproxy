@@ -1,14 +1,69 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
   <title>Success</title>
   <style>
-    body { font-family: sans-serif; padding: 2rem; text-align: center; }
-    .msg { font-size: 1.5rem; color: green; font-weight: bold; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: linear-gradient(to right, #141e30, #243b55); /* Royal Blue gradient */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 2.5rem 3rem;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      text-align: center;
+      color: #fff;
+    }
+
+    .msg {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: #00d4ff; /* Neon cyan-blue */
+      margin-bottom: 1rem;
+    }
+
+    .info {
+      font-size: 1rem;
+      color: #dbeaff;
+    }
+
+    @media (max-width: 480px) {
+      .card {
+        padding: 1.5rem;
+        width: 90%;
+      }
+
+      .msg {
+        font-size: 1.5rem;
+      }
+
+      .info {
+        font-size: 0.95rem;
+      }
+    }
   </style>
 </head>
 <body>
-  <p class="msg">✅ Attendance marked successfully!</p>
-  <p>You may now close this page.</p>
+  <div class="card">
+    <p class="msg">✅ Attendance marked successfully!</p>
+    <p class="info">You may now close this page.</p>
+  </div>
 </body>
 </html>

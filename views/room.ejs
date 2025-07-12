@@ -8,11 +8,141 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
   <style>
-    body { font-family: sans-serif; padding: 2rem; }
-    #adminStatus { font-weight: bold; }
-    #qrcode { margin-top: 20px; }
-    #countdown { font-weight: bold; font-size: 20px; }
-  </style>
+  body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    background-color: #0f0f1a;
+    color: #e6f0ff;
+    padding: 2rem;
+    margin: 0;
+    backdrop-filter: blur(6px);
+    background-image: radial-gradient(circle at top left, #1e1e2f, #0f0f1a);
+  }
+
+  h2 {
+    font-size: 1.8rem;
+    color: #1E90FF;
+    margin-bottom: 1rem;
+    text-shadow: 0 0 6px rgba(30,144,255,0.5);
+  }
+
+  p, h3 {
+    margin: 0.5rem 0;
+  }
+
+  #adminStatus {
+    font-weight: bold;
+    color: #00FFAA;
+    margin-bottom: 1.2rem;
+  }
+
+  #adminArea {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 2rem;
+    margin-top: 1rem;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+  }
+
+  #qrcode {
+    margin: 30px auto;
+    background: #ffffff;
+    padding: 15px;
+    width: fit-content;
+    border-radius: 12px;
+    box-shadow: 0 0 20px rgba(30,144,255, 0.4);
+  }
+
+  #countdown {
+    font-weight: bold;
+    font-size: 1.5rem;
+    color: #FF6F61;
+  }
+
+  h3 {
+    color: #1E90FF;
+    font-size: 1.4rem;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #1E90FF;
+    padding-bottom: 0.5rem;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    font-size: 0.95rem;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  table th, table td {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 0.8rem;
+    text-align: center;
+    backdrop-filter: blur(4px);
+  }
+
+  table th {
+    background-color: rgba(30, 144, 255, 0.2);
+    color: #ffffff;
+    font-weight: 600;
+  }
+
+  table img.selfie {
+    max-width: 150px;
+    max-height: 150px;
+    border-radius: 10px;
+    border: 2px solid #1E90FF;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+  }
+
+  table img.selfie:hover {
+    transform: scale(2);
+    z-index: 1000;
+    position: relative;
+  }
+
+  #downloadExcel {
+    margin-top: 2rem;
+    background: linear-gradient(135deg, #1E90FF, #00BFFF);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 0.9rem 2rem;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(30, 144, 255, 0.3);
+    transition: background 0.3s ease, transform 0.2s;
+  }
+
+  #downloadExcel:hover {
+    transform: scale(1.05);
+    background: linear-gradient(135deg, #00BFFF, #1E90FF);
+  }
+
+  @media (max-width: 768px) {
+    table {
+      font-size: 0.85rem;
+    }
+
+    #qrcode {
+      width: 300px;
+      height: 300px;
+    }
+
+    table img.selfie {
+      max-width: 90px;
+      max-height: 90px;
+    }
+  }
+</style>
+
 </head>
 <body>
   <h2>🔐 Room: <%= roomName %></h2>
@@ -109,8 +239,8 @@ const socket = io({
         qrcodeContainer.innerHTML = "";
         new QRCode(qrcodeContainer, {
           text: payload,
-          width: 256,
-          height: 256,
+          width: 400,
+          height: 400,
         });
       }
 
