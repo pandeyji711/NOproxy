@@ -217,21 +217,20 @@ if (submitted === "yes") {
   // // ✅ Redirect to success page
   // window.location.href = "/success";
 };
-socket.on("entry-confirmed", () => {
-  // ✅ Clear local storage for this room
-  const room = "<%= roomName %>";
-  // localStorage.removeItem(`allowed-${room}`);
-  // localStorage.removeItem(`entryKey-${room}`);
-  // localStorage.setItem(`submitted-${room}`, "yes");
+// socket.on("entry-confirmed", () => {
+//   // ✅ Clear local storage for this room
+//   // localStorage.removeItem(`allowed-${room}`);
+//   // localStorage.removeItem(`entryKey-${room}`);
+//   // localStorage.setItem(`submitted-${room}`, "yes");
 
-  // Redirect
-  startSession();
-   document.body.innerHTML='';
-   const h1=document.createElement("h1");
-   h1.innerHTML="please wait your and do not exit full screen , your attendence is verifying by teacher";
-   document.body.appendChild(h1);
-  // window.location.href = `/waiting/${roomName}`;
-});
+//   // Redirect
+//   startSession();
+//    document.body.innerHTML='';
+//    const h1=document.createElement("h1");
+//    h1.innerHTML="please wait your and do not exit full screen , your attendence is verifying by teacher";
+//    document.body.appendChild(h1);
+//   // window.location.href = `/waiting/${roomName}`;
+// });
 window.addEventListener('beforeunload', function () {
   localStorage.clear();
 });
@@ -280,38 +279,56 @@ socket.on("error-message",(message)=>{
   //   maximumAge: 0
   // });
 // }
-//cencil
-let cancelSent = false;
-function sendCancelAttendance() {
-  if (cancelSent) return;
-  cancelSent = true;
-  socket.emit("cancel-attendance", { roomName, entryKey });
-  alert("your attendence is cenciled , Please rescan the qr")
-  // localStorage.removeItem(`submitted-${roomName}`);
-   localStorage.removeItem(`allowed-${roomName}`);
-  localStorage.removeItem(`entryKey-${roomName}`);
-  window.location.href = "/";
-}
-function handleFullscreenExit() {
-    const isFull = document.fullscreenElement || document.webkitFullscreenElement;
-    if (!isFull) sendCancelAttendance();
+
+ let cancelSent = false;
+
+  function sendCancelAttendance(reason = "⚠️ You exited the session") {
+    if (cancelSent) return;
+    cancelSent = true;
+    alert(reason);
+    socket.emit("cancel-attendance", { roomName, entryKey });
+
+    // Clear local storage
+    localStorage.removeItem(`allowed-${roomName}`);
+    localStorage.removeItem(`entryKey-${roomName}`);
+
+    window.location.href = "/";
   }
- document.addEventListener("fullscreenchange", handleFullscreenExit);
-    document.addEventListener("webkitfullscreenchange", handleFullscreenExit);
- function startSession() {
+
+  function handleFullscreenExit() {
+    const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement;
+    if (!isFullscreen) {
+      sendCancelAttendance("⚠️ You exited fullscreen. Attendance cancelled.");
+    }
+  }
+
+  // Handle tab switch / app switch / browser minimize
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      sendCancelAttendance("⚠️ You left the session. Attendance cancelled.");
+    }
+  });
+
+  // Extra fallback: blur event (less reliable on mobile but good on desktop)
+  window.addEventListener("blur", () => {
+    sendCancelAttendance("⚠️ You switched tabs or minimized.");
+  });
+
+  // Monitor fullscreen exit
+  document.addEventListener("fullscreenchange", handleFullscreenExit);
+  document.addEventListener("webkitfullscreenchange", handleFullscreenExit);
+
+  // Start fullscreen mode on confirmation
+  socket.on("entry-confirmed", () => {
+    document.body.innerHTML = '';
+    const h1 = document.createElement("h1");
+    h1.textContent = "✅ Please wait... stay in fullscreen. Your attendance is under verification.";
+    document.body.appendChild(h1);
+
     const el = document.documentElement;
     if (el.requestFullscreen) el.requestFullscreen();
     else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-      document.addEventListener("fullscreenchange", handleFullscreenExit);
-    document.addEventListener("webkitfullscreenchange", handleFullscreenExit);
-    // document.addEventListener("fullscreenchange", handleFullscreenExit);
-    // document.addEventListener("webkitfullscreenchange", handleFullscreenExit);
-
-    // startBtn.style.display = "none";
-    // statusDiv.style.display = "block";
-  }
-
-  // startBtn.addEventListener("click", startSession);
-  </script>
+  });
+    </script>
 </body>
 </html>
