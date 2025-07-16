@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Waiting Room - NoProxy</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f8f8f8;
+      padding: 2rem;
+      text-align: center;
+    }
+    h1 {
+      color: #333;
+    }
+    .message {
+      font-size: 1.2rem;
+      margin-top: 30px;
+      color: #555;
+    }
+    #status {
+      font-weight: bold;
+      color: green;
+      margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>🕒 Please wait...</h1>
+  <p class="message">You have submitted your attendance. Please wait until the teacher ends the session.</p>
+  <div id="status">✅ Attendance submitted successfully.</div>
+
+  <script>
+    const socket = io();
+    const roomName = "<%= roomName %>";
+    const entryKey = localStorage.getItem(`entryKey-${roomName}`);
+    // const tem=localStorage.getItem("tem");
+    // const submitted = localStorage.getItem(`submitted-${roomName}`);
+   console.log(entryKey);
+  //   if (!entryKey) {
+  //     window.location.href = "/"; // unauthorized
+  //   }
+
+    let cancelSent = false;
+
+function sendCancelAttendance() {
+  if (cancelSent) return;
+  cancelSent = true;
+  socket.emit("cancel-attendance", { roomName, entryKey });
+  // localStorage.removeItem(`submitted-${roomName}`);
+  window.location.href = "/";
+}
+  function handleFullscreenExit() {
+    const isFull = document.fullscreenElement || document.webkitFullscreenElement;
+    if (!isFull) sendCancelAttendance();
+  }
+ document.addEventListener("fullscreenchange", handleFullscreenExit);
+    document.addEventListener("webkitfullscreenchange", handleFullscreenExit);
+// ❌ On tab switch or window blur
+window.addEventListener("blur", () => {
+  alert("⚠️ Tab switching or minimizing is not allowed. Your attendance has been cancelled.");
+  sendCancelAttendance();
+});
+
+// ❌ On page unload (refresh/close)
+window.addEventListener("beforeunload", () => {
+   alert("⚠️ Tab switching or minimizing is not allowed. Your attendance has been cancelled.");
+  sendCancelAttendance();
+});
+  </script>
+</body>
+</html>

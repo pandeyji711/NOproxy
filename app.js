@@ -4,6 +4,7 @@ const http = require("http");
 const socketIO = require("socket.io");
 const jwt = require("jsonwebtoken");
 const ExcelJS = require("exceljs");
+const { Tab } = require("docx");
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server);
@@ -19,7 +20,6 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // Routes
 app.get("/", (req, res) => res.render("index"));
-
 app.get("/room/:roomName", (req, res) => {
   const roomName = req.params.roomName;
   if (!createdRooms.has(roomName)) return res.redirect("/");
@@ -167,13 +167,43 @@ io.on("connection", (socket) => {
         }
 
         // 🧼 Remove key after use
-        validEntryKeys.get(roomName).delete(entryKey);
+        // validEntryKeys.get(roomName).delete(entryKey);
       } catch (err) {
         console.error("❌ Error during entry submission:", err);
         socket.emit("error-message", "Server error while submitting");
       }
     }
   );
+  socket.on("cancel-attendance", async ({ roomName, entryKey }) => {
+    const isValid =
+      validEntryKeys.has(roomName) &&
+      validEntryKeys.get(roomName).has(entryKey);
+
+    if (!isValid) {
+      socket.emit("error-message", "❌ Invalid or expired entry key");
+      return;
+    }
+    try {
+      const roomSockets = await io.in(roomName).fetchSockets();
+      const adminSocket = roomSockets.find(
+        (s) => s.handshake.auth?.admin === true
+      );
+
+      if (adminSocket) {
+        // ✅ Send to admin only
+        adminSocket.emit("cancel-attendance", {
+          entryKey,
+          roomName,
+        });
+      } else {
+        socket.emit("error-message", "Admin not available in room");
+      }
+      validEntryKeys.get(roomName).delete(entryKey);
+    } catch (err) {
+      console.error("❌ Error during entry submission:", err);
+      socket.emit("error-message", "Server error while submitting");
+    }
+  });
 
   //register socket haldlar
   socket.on("register-entry-key", ({ roomName, entryKey }) => {
@@ -182,6 +212,8 @@ io.on("connection", (socket) => {
     }
     validEntryKeys.get(roomName).add(entryKey);
   });
+
+  //tab switch
 
   socket.on("disconnect", () => {
     for (const [roomName, adminSocketId] of adminSockets.entries()) {

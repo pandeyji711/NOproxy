@@ -306,6 +306,7 @@ socket.on("new-participant", ({ name, roll, entryKey,admission,selfie  }) => {
   list.push(data);
   localStorage.setItem(roomKey, JSON.stringify(list));
   const row = document.createElement("tr");
+    row.id=entryKey;
   row.innerHTML = `
     <td>${participantIndex++}</td>
     <td>${name || "-"}</td>
@@ -318,7 +319,14 @@ socket.on("new-participant", ({ name, roll, entryKey,admission,selfie  }) => {
 window.addEventListener('beforeunload', function () {
   localStorage.clear();
 });
-
+socket.on("cancel-attendance",({ roomName, entryKey })=>{
+          const row =document.getElementById(entryKey);  
+          if(row)
+          {
+              row.remove();
+          }
+          console.log(entryKey+" removed");
+})
 
 //to calculate distance
 

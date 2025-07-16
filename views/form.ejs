@@ -140,7 +140,6 @@
 
   <img id="imgx"/>
   <p id="status"></p>
-
   <script>
        let imageData = "";
     const roomName = "<%= roomName %>";
@@ -221,12 +220,17 @@ if (submitted === "yes") {
 socket.on("entry-confirmed", () => {
   // ✅ Clear local storage for this room
   const room = "<%= roomName %>";
-  localStorage.removeItem(`allowed-${room}`);
-  localStorage.removeItem(`entryKey-${room}`);
-  localStorage.setItem(`submitted-${room}`, "yes");
+  // localStorage.removeItem(`allowed-${room}`);
+  // localStorage.removeItem(`entryKey-${room}`);
+  // localStorage.setItem(`submitted-${room}`, "yes");
 
   // Redirect
-  window.location.href = "/success";
+  startSession();
+   document.body.innerHTML='';
+   const h1=document.createElement("h1");
+   h1.innerHTML="please wait your and do not exit full screen , your attendence is verifying by teacher";
+   document.body.appendChild(h1);
+  // window.location.href = `/waiting/${roomName}`;
 });
 window.addEventListener('beforeunload', function () {
   localStorage.clear();
@@ -276,6 +280,38 @@ socket.on("error-message",(message)=>{
   //   maximumAge: 0
   // });
 // }
+//cencil
+let cancelSent = false;
+function sendCancelAttendance() {
+  if (cancelSent) return;
+  cancelSent = true;
+  socket.emit("cancel-attendance", { roomName, entryKey });
+  alert("your attendence is cenciled , Please rescan the qr")
+  // localStorage.removeItem(`submitted-${roomName}`);
+   localStorage.removeItem(`allowed-${roomName}`);
+  localStorage.removeItem(`entryKey-${roomName}`);
+  window.location.href = "/";
+}
+function handleFullscreenExit() {
+    const isFull = document.fullscreenElement || document.webkitFullscreenElement;
+    if (!isFull) sendCancelAttendance();
+  }
+ document.addEventListener("fullscreenchange", handleFullscreenExit);
+    document.addEventListener("webkitfullscreenchange", handleFullscreenExit);
+ function startSession() {
+    const el = document.documentElement;
+    if (el.requestFullscreen) el.requestFullscreen();
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+      document.addEventListener("fullscreenchange", handleFullscreenExit);
+    document.addEventListener("webkitfullscreenchange", handleFullscreenExit);
+    // document.addEventListener("fullscreenchange", handleFullscreenExit);
+    // document.addEventListener("webkitfullscreenchange", handleFullscreenExit);
+
+    // startBtn.style.display = "none";
+    // statusDiv.style.display = "block";
+  }
+
+  // startBtn.addEventListener("click", startSession);
   </script>
 </body>
 </html>
