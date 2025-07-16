@@ -4,7 +4,6 @@ const http = require("http");
 const socketIO = require("socket.io");
 const jwt = require("jsonwebtoken");
 const ExcelJS = require("exceljs");
-const { Tab } = require("docx");
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server);
