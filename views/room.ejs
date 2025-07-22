@@ -149,8 +149,11 @@
   <p id="adminStatus">Checking...</p>
 
   <div id="adminArea" style="display: none;">
+    <div id="remove">
     <div id="qrcode"></div>
+    
     <p>⏳ New QR in: <span id="countdown">--</span> seconds</p>
+    </div>
       <div id="participantSection" style="margin-top: 30px;">
     <h3>👥 Participants</h3>
     <table border="1" id="participantsTable">
@@ -248,6 +251,37 @@ const socket = io({
     
       const intervalId = setInterval(generateSecret, time1);
 
+    } else {
+      adminStatus.textContent = "👤 You are a participant";
+    }
+    
+function removeStudentByEntryKey(targetEntryKey) {
+  // Step 1: Get the array from localStorage
+   const roomKey = `participants-${roomName}`;
+  const data = localStorage.getItem(roomKey);
+  if (!data) return; // if no data, nothing to remove
+
+  // Step 2: Parse the JSON string to array
+  const students = JSON.parse(data);
+
+  // Step 3: Filter out the one with the matching entryKey
+  const updatedStudents = students.filter(student => student.entryKey !== targetEntryKey);
+
+  // Step 4: Save the updated array back to localStorage
+  localStorage.setItem(roomKey, JSON.stringify(updatedStudents));
+}
+ function removerow(row){
+         row.remove();
+ }
+socket.on("cancel-attendance",({ roomName, entryKey })=>{
+          const row =document.getElementById(entryKey);  
+          if(row)
+          {
+             removerow(row);
+              removeStudentByEntryKey(entryKey);
+          }
+          console.log(entryKey+" removed");
+})
       window.addEventListener("beforeunload", () => {
         clearInterval(intervalId);
         clearInterval(countdownInterval);
@@ -255,100 +289,13 @@ const socket = io({
         localStorage.removeItem(`allowed-${roomName}`);
         socket.emit("secret-code", { roomName, code: "❌ Admin Left", token });
       });
-    } else {
-      adminStatus.textContent = "👤 You are a participant";
-    }
 
-    socket.on("secret-code", ({ code, generatedAt ,second}) => {
-      currentSecret = code;
-      
-      if (countdownInterval) clearInterval(countdownInterval);
-      let secondsLeft = time - Math.floor((Date.now() - generatedAt) / 1000);
-      if (secondsLeft <= 0 || secondsLeft > time) secondsLeft = time;
-      countdownDisplay.textContent = secondsLeft;
-
-      countdownInterval = setInterval(() => {
-        secondsLeft--;
-        if (secondsLeft <= 0) {
-          countdownDisplay.textContent = "0";
-          clearInterval(countdownInterval);
-        } else {
-          countdownDisplay.textContent = secondsLeft;
-        }
-      }, 1000);
-    });
-
-    socket.on("request-latest-code", ({ newSocketId }) => {
-      socket.emit("send-latest-code", {
-        roomName,
-        code: currentSecret,
-        generatedAt: Date.now(),
-        to: newSocketId,
-      });
-    });
-  
-    //join participents table addition
-   const participantsTable = document.querySelector("#participantsTable tbody");
-
-let participantIndex = 1;
-
-socket.on("new-participant", ({ name, roll, entryKey,admission,selfie  }) => {
-    // console.log(validEntryKeys.get(roomName).has(entryKey))
-           // Request location
-
-  if (!isAdmin) return;
-      
-      //  const distance = getDistanceInKm(userLocation.latitude, userLocation.longitude, latitudex, longitudex);
-      //  const twodigitdis=distance.toFixed(2);
-         let roomKey = `participants-${roomName}`;
-         const data={  name, roll,admission,location };
-  let list = JSON.parse(localStorage.getItem(roomKey)) || [];
-  list.push(data);
-  localStorage.setItem(roomKey, JSON.stringify(list));
-  const row = document.createElement("tr");
-    row.id=entryKey;
-  row.innerHTML = `
-    <td>${participantIndex++}</td>
-    <td>${name || "-"}</td>
-    <td>${roll || "-"}</td>
-    <td>${admission || "-"}</td>
-        <td><img class="selfie" src="${selfie}" alt="Selfie" /></td>
-  `;
-  participantsTable.appendChild(row);
-});
-window.addEventListener('beforeunload', function () {
-  localStorage.clear();
-});
-socket.on("cancel-attendance",({ roomName, entryKey })=>{
-          const row =document.getElementById(entryKey);  
-          if(row)
-          {
-              row.remove();
-          }
-          console.log(entryKey+" removed");
-})
-
-//to calculate distance
-
-// function getDistanceInKm(lat1, lon1, lat2, lon2) {
-//   const R = 6371; // Radius of the Earth in kilometers
-//   const dLat = (lat2 - lat1) * Math.PI / 180;
-//   const dLon = (lon2 - lon1) * Math.PI / 180;
-
-//   const a =
-//     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-//     Math.cos(lat1 * Math.PI / 180) *
-//     Math.cos(lat2 * Math.PI / 180) *
-//     Math.sin(dLon / 2) * Math.sin(dLon / 2);
-
-//   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-//   return R * c; // Distance in km
-// }
-
-
-//making exel
 
 document.getElementById("downloadExcel").onclick = () => {
+    const qr=document.getElementById("remove").remove();
+    removerow= ()=>{};
+    removeStudentByEntryKey=()=>{};
+    socket.emit("attendence-marked", { roomName: roomName });
     // Dummy participant data — replace with your actual data
       const roomKey = `participants-${roomName}`;
   const participantsData = JSON.parse(localStorage.getItem(roomKey)) || [];
@@ -393,7 +340,162 @@ document.getElementById("downloadExcel").onclick = () => {
         };
       }
     }
+  //  socket.emit("verified",{roomName});
+    // 5. Export to file
+    XLSX.writeFile(workbook, `${roomName} NoProxy_Attendance_Report.xlsx`, { cellStyles: true });
+  };
+    socket.on("secret-code", ({ code, generatedAt ,second}) => {
+      currentSecret = code;
+      
+      if (countdownInterval) clearInterval(countdownInterval);
+      let secondsLeft = time - Math.floor((Date.now() - generatedAt) / 1000);
+      if (secondsLeft <= 0 || secondsLeft > time) secondsLeft = time;
+      countdownDisplay.textContent = secondsLeft;
 
+      countdownInterval = setInterval(() => {
+        secondsLeft--;
+        if (secondsLeft <= 0) {
+          countdownDisplay.textContent = "0";
+          clearInterval(countdownInterval);
+        } else {
+          countdownDisplay.textContent = secondsLeft;
+        }
+      }, 1000);
+    });
+
+    socket.on("request-latest-code", ({ newSocketId }) => {
+      socket.emit("send-latest-code", {
+        roomName,
+        code: currentSecret,
+        generatedAt: Date.now(),
+        to: newSocketId,
+      });
+    });
+  
+    //join participents table addition
+   const participantsTable = document.querySelector("#participantsTable tbody");
+
+let participantIndex = 1;
+
+socket.on("new-participant", ({ name, roll, entryKey,admission,selfie  }) => {
+    // console.log(validEntryKeys.get(roomName).has(entryKey))
+           // Request location
+
+  if (!isAdmin) return;
+      
+      //  const distance = getDistanceInKm(userLocation.latitude, userLocation.longitude, latitudex, longitudex);
+      //  const twodigitdis=distance.toFixed(2);
+         let roomKey = `participants-${roomName}`;
+         const data={  entryKey,name, roll,admission,location };
+  let list = JSON.parse(localStorage.getItem(roomKey)) || [];
+  list.push(data);
+  localStorage.setItem(roomKey, JSON.stringify(list));
+  const row = document.createElement("tr");
+    row.id=entryKey;
+  row.innerHTML = `
+    <td>${participantIndex++}</td>
+    <td>${name || "-"}</td>
+    <td>${roll || "-"}</td>
+    <td>${admission || "-"}</td>
+        <td><img class="selfie" src="${selfie}" alt="Selfie" /></td>
+  `;
+  participantsTable.appendChild(row);
+});
+window.addEventListener('beforeunload', function () {
+  localStorage.clear();
+});
+
+
+function removeStudentByEntryKey(targetEntryKey) {
+  // Step 1: Get the array from localStorage
+   const roomKey = `participants-${roomName}`;
+  const data = localStorage.getItem(roomKey);
+  if (!data) return; // if no data, nothing to remove
+
+  // Step 2: Parse the JSON string to array
+  const students = JSON.parse(data);
+
+  // Step 3: Filter out the one with the matching entryKey
+  const updatedStudents = students.filter(student => student.entryKey !== targetEntryKey);
+
+  // Step 4: Save the updated array back to localStorage
+  localStorage.setItem(roomKey, JSON.stringify(updatedStudents));
+}
+ function removerow(row){
+         row.remove();
+ }
+socket.on("cancel-attendance",({ roomName, entryKey })=>{
+          const row =document.getElementById(entryKey);  
+          if(row)
+          {
+             removerow(row);
+              removeStudentByEntryKey(entryKey);
+          }
+          console.log(entryKey+" removed");
+})
+      window.addEventListener("beforeunload", () => {
+        clearInterval(intervalId);
+        clearInterval(countdownInterval);
+        localStorage.removeItem(`token-${roomName}`);
+        localStorage.removeItem(`allowed-${roomName}`);
+        socket.emit("secret-code", { roomName, code: "❌ Admin Left", token });
+      });
+
+
+document.getElementById("downloadExcel").onclick = () => {
+    const qr=document.getElementById("remove");
+    if(qr)
+    {
+      qr.remove();
+    }
+    removerow= ()=>{};
+    removeStudentByEntryKey=()=>{};
+    socket.emit("attendence-marked", { roomName: roomName });
+    // Dummy participant data — replace with your actual data
+      const roomKey = `participants-${roomName}`;
+  const participantsData = JSON.parse(localStorage.getItem(roomKey)) || [];
+
+  if (participantsData.length === 0) {
+    alert("No data available.");
+    return;
+  }
+
+  const formattedData = participantsData.map(p => ({
+  "Name": p.name,
+  "Roll No.": p.roll,
+  "Admission No.": p.admission,
+}));
+
+    // 1. Create worksheet and workbook
+    const worksheet = XLSX.utils.json_to_sheet(formattedData);
+
+    // 2. Auto width calculation
+    const columnWidths = Object.keys(participantsData[0]).map(key => {
+      const maxLength = Math.max(
+        key.length,
+        ...participantsData.map(p => (p[key] ? p[key].toString().length : 0))
+      );
+      return { wch: maxLength + 1 }; // +2 padding
+    });
+    worksheet['!cols'] = columnWidths;
+
+    // 3. Workbook creation
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Participant Report");
+
+    // 4. Styling: Add bold headers (manually mark them)
+    const headerRange = XLSX.utils.decode_range(worksheet['!ref']);
+    for (let C = headerRange.s.c; C <= headerRange.e.c; ++C) {
+      const cellAddress = XLSX.utils.encode_cell({ c: C, r: 0 });
+      if (worksheet[cellAddress]) {
+        worksheet[cellAddress].s = {
+          font: { bold: true },
+          fill: { fgColor: { rgb: "DCE6F1" } },
+          alignment: { horizontal: "center" }
+        };
+      }
+    }
+  //  socket.emit("verified",{roomName});
     // 5. Export to file
     XLSX.writeFile(workbook, `${roomName} NoProxy_Attendance_Report.xlsx`, { cellStyles: true });
   };

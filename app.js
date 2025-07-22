@@ -68,7 +68,6 @@ io.on("connection", (socket) => {
     }
 
     socket.join(roomName);
-
     // ✅ Request latest code from admin
     socket.to(roomName).emit("request-latest-code", {
       newSocketId: socket.id,
@@ -91,6 +90,7 @@ io.on("connection", (socket) => {
       console.error("Error notifying admin:", err);
     }
   });
+  //rejoion
 
   // Admin emits rotating secret code
   socket.on("secret-code", ({ roomName, code, token }) => {
@@ -112,13 +112,17 @@ io.on("connection", (socket) => {
   });
 
   // ✅ New: Verify scanned QR code
-  socket.on("verify-secret", ({ roomName, code }) => {
+  socket.on("verify-secret", async ({ roomName, code }) => {
     const entry = adminCodeState[roomName];
     if (entry && entry.code === code) {
       socket.emit("verified", { success: true });
     } else {
       socket.emit("verified", { success: false });
     }
+  });
+
+  socket.on("Rejoin-room", (roomName) => {
+    socket.join(roomName);
   });
 
   // ✅ Participant submits details via form
@@ -142,6 +146,7 @@ io.on("connection", (socket) => {
 
       try {
         const roomSockets = await io.in(roomName).fetchSockets();
+        // console.log(roomSockets.length);
         const adminSocket = roomSockets.find(
           (s) => s.handshake.auth?.admin === true
         );
@@ -199,11 +204,27 @@ io.on("connection", (socket) => {
       }
       validEntryKeys.get(roomName).delete(entryKey);
     } catch (err) {
-      console.error("❌ Error during entry submission:", err);
-      socket.emit("error-message", "Server error while submitting");
+      console.error("❌ Error during cancel attendance", err);
+      socket.emit("error-message", "Server error ");
     }
   });
+  //addendence sucess
+  socket.on("attendence-marked", async ({ roomName }) => {
+    try {
+      const roomSockets3 = await io.in(roomName).fetchSockets();
+      const memberSocket = roomSockets3.filter(
+        (s) => s.handshake.auth?.admin === false
+      );
 
+      // console.log(roomSockets3.length);
+      memberSocket.forEach((element) => {
+        element.emit("attendence-marked");
+      });
+    } catch (err) {
+      console.error("❌ Error during attendence-marke", err);
+      socket.emit("error-message", "Server error ");
+    }
+  });
   //register socket haldlar
   socket.on("register-entry-key", ({ roomName, entryKey }) => {
     if (!validEntryKeys.has(roomName)) {
@@ -211,8 +232,6 @@ io.on("connection", (socket) => {
     }
     validEntryKeys.get(roomName).add(entryKey);
   });
-
-  //tab switch
 
   socket.on("disconnect", () => {
     for (const [roomName, adminSocketId] of adminSockets.entries()) {

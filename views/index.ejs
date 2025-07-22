@@ -217,6 +217,7 @@
                   localStorage.setItem(`allowed-${roomName}`, "yes");
                   const generatedKey = Math.random().toString(36).substring(2, 9);
                   localStorage.setItem(`entryKey-${roomName}`, generatedKey);
+                  localStorage.setItem(`roomname`,roomName);
                   socket.emit("register-entry-key", { roomName, entryKey: generatedKey });
 
                   html5Qr.stop().then(() => {

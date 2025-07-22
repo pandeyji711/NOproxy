@@ -156,7 +156,15 @@ if (submitted === "yes") {
   window.location.href = "/";
 }
 
-    const socket = io();
+   const socket = io({
+  auth: {
+    admin: false,
+  },
+});
+const roomname=localStorage.getItem("roomname");
+socket.on("connect", () => {
+  socket.emit("Rejoin-room", roomname);  // Tell server to Rejoin
+});
     const form = document.getElementById("participantForm");
    const camform=document.getElementById("camerax");
    camform.onsubmit=(e)=>{
@@ -169,8 +177,7 @@ if (submitted === "yes") {
    // Capture image
 
    }
-  let latitudex;
-  let longitudex; 
+
   form.onsubmit = (e) => {
   e.preventDefault();
        if(imageData==""){
@@ -281,7 +288,6 @@ socket.on("error-message",(message)=>{
 // }
 
  let cancelSent = false;
-
   function sendCancelAttendance(reason = "⚠️ You exited the session") {
     if (cancelSent) return;
     cancelSent = true;
@@ -294,7 +300,7 @@ socket.on("error-message",(message)=>{
 
     window.location.href = "/";
   }
-
+    
   function handleFullscreenExit() {
     const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement;
     if (!isFullscreen) {
@@ -328,6 +334,12 @@ socket.on("error-message",(message)=>{
     const el = document.documentElement;
     if (el.requestFullscreen) el.requestFullscreen();
     else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  });
+
+  //attendance marked 
+  socket.on("attendence-marked",()=>{
+    localStorage.clear();
+       window.location.href = "/success";
   });
     </script>
 </body>
