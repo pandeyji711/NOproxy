@@ -41,7 +41,7 @@ io.on("connection", (socket) => {
   if (admin === true && socket.handshake.query?.room) {
     const roomName = socket.handshake.query.room;
     adminSockets.set(roomName, socket.id);
-    // console.log("✅ Registered new admin socket:", socket.id, "for", roomName);
+    // console.log(" Registered new admin socket:", socket.id, "for", roomName);
   }
   // Admin creates room
   socket.on("create-room", (roomName) => {
@@ -50,7 +50,7 @@ io.on("connection", (socket) => {
     } else {
       createdRooms.add(roomName);
       socket.join(roomName);
-      // adminSockets.set(roomName, socket.id); // 🆕 Track admin socket ID
+      // adminSockets.set(roomName, socket.id); // Track admin socket ID
 
       const token = jwt.sign({ room: roomName, admin: true }, SECRET, {
         expiresIn: "1h",
@@ -68,12 +68,12 @@ io.on("connection", (socket) => {
     }
 
     socket.join(roomName);
-    // ✅ Request latest code from admin
+    // Request latest code from admin
     socket.to(roomName).emit("request-latest-code", {
       newSocketId: socket.id,
     });
 
-    // ✅ Notify admin (only if this socket is NOT admin)
+    //  Notify admin (only if this socket is NOT admin)
     try {
       const roomSockets = await io.in(roomName).fetchSockets();
       const adminSocket = roomSockets.find(
@@ -111,7 +111,7 @@ io.on("connection", (socket) => {
     io.to(to).emit("secret-code", { code, generatedAt });
   });
 
-  // ✅ New: Verify scanned QR code
+  //  New: Verify scanned QR code
   socket.on("verify-secret", async ({ roomName, code }) => {
     const entry = adminCodeState[roomName];
     if (entry && entry.code === code) {
@@ -125,7 +125,7 @@ io.on("connection", (socket) => {
     socket.join(roomName);
   });
 
-  // ✅ Participant submits details via form
+  //  Participant submits details via form
   socket.on(
     "participant-details",
     async ({ roomName, name, roll, admission, entryKey, selfie }) => {
@@ -152,16 +152,15 @@ io.on("connection", (socket) => {
         );
 
         if (adminSocket) {
-          // ✅ Send to admin only
+          //  Send to admin only
           adminSocket.emit("new-participant", {
             name,
             roll,
             admission,
             entryKey,
-            selfie,
           });
 
-          // ✅ Confirm entry to this participant only
+          //  Confirm entry to this participant only
           socket.emit("entry-confirmed");
 
           // Optional log
@@ -170,10 +169,10 @@ io.on("connection", (socket) => {
           socket.emit("error-message", "Admin not available in room");
         }
 
-        // 🧼 Remove key after use
+        //  Remove key after use
         // validEntryKeys.get(roomName).delete(entryKey);
       } catch (err) {
-        console.error("❌ Error during entry submission:", err);
+        console.error(" Error during entry submission:", err);
         socket.emit("error-message", "Server error while submitting");
       }
     }
@@ -184,7 +183,7 @@ io.on("connection", (socket) => {
       validEntryKeys.get(roomName).has(entryKey);
 
     if (!isValid) {
-      socket.emit("error-message", "❌ Invalid or expired entry key");
+      socket.emit("error-message", " Invalid or expired entry key");
       return;
     }
     try {
@@ -194,7 +193,7 @@ io.on("connection", (socket) => {
       );
 
       if (adminSocket) {
-        // ✅ Send to admin only
+        //  Send to admin only
         adminSocket.emit("cancel-attendance", {
           entryKey,
           roomName,
@@ -204,7 +203,7 @@ io.on("connection", (socket) => {
       }
       validEntryKeys.get(roomName).delete(entryKey);
     } catch (err) {
-      console.error("❌ Error during cancel attendance", err);
+      console.error(" Error during cancel attendance", err);
       socket.emit("error-message", "Server error ");
     }
   });
@@ -221,7 +220,7 @@ io.on("connection", (socket) => {
         element.emit("attendence-marked");
       });
     } catch (err) {
-      console.error("❌ Error during attendence-marke", err);
+      console.error(" Error during attendence-marke", err);
       socket.emit("error-message", "Server error ");
     }
   });
@@ -236,7 +235,7 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     for (const [roomName, adminSocketId] of adminSockets.entries()) {
       if (socket.id === adminSocketId) {
-        // console.log(`🛑 Admin left room: ${roomName} — cleaning up`);
+        // console.log(` Admin left room: ${roomName} — cleaning up`);
 
         createdRooms.delete(roomName);
         delete adminCodeState[roomName];
@@ -249,5 +248,5 @@ io.on("connection", (socket) => {
   });
 });
 server.listen(3000, () =>
-  console.log("✅ Server running at http://localhost:3000")
+  console.log(" Server running at http://localhost:3000")
 );

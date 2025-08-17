@@ -132,14 +132,14 @@
    <button type="submit">Submit</button>
   </form>
     
-  <form id="camerax">
+  <!-- <form id="camerax">
     <video id="video" autoplay playsinline width="300" height="200"></video>
     <canvas id="canvas" width="300" height="200" style="display:none;"></canvas>
      <button type="submit">take photo</button>
-  </form>
+  </form> -->
 
-  <img id="imgx"/>
-  <p id="status"></p>
+  <!-- <img id="imgx"/>
+  <p id="status"></p> -->
   <script>
        let imageData = "";
     const roomName = "<%= roomName %>";
@@ -164,26 +164,24 @@ if (submitted === "yes") {
 const roomname=localStorage.getItem("roomname");
 socket.on("connect", () => {
   socket.emit("Rejoin-room", roomname);  // Tell server to Rejoin
+
 });
     const form = document.getElementById("participantForm");
-   const camform=document.getElementById("camerax");
-   camform.onsubmit=(e)=>{
-      e.preventDefault();
-        const canvas = document.getElementById("canvas");
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      imageData = canvas.toDataURL("image/png");
-      document.getElementById("imgx").src=imageData;
-   // Capture image
+  //  const camform=document.getElementById("camerax");
+  //  camform.onsubmit=(e)=>{
+  //     e.preventDefault();
+  //       const canvas = document.getElementById("canvas");
+  //     const ctx = canvas.getContext("2d");
+  //     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  //     imageData = canvas.toDataURL("image/png");
+  //     document.getElementById("imgx").src=imageData;
+  //  // Capture image
 
-   }
+  //  }
 
   form.onsubmit = (e) => {
   e.preventDefault();
-       if(imageData==""){
-     alert("please take selfe of yours...");
-        return ;
-     }
+     
 
   const name = document.getElementById("name").value.trim();
   const roll = document.getElementById("roll").value.trim();
@@ -209,7 +207,6 @@ socket.on("connect", () => {
     roll,
     admission,
     entryKey,
-     selfie: imageData,
   });
 
   // // ✅ Save submission flag
@@ -251,14 +248,14 @@ socket.on("error-message",(message)=>{
   
 
     // Get front camera stream
-    const video = document.getElementById("video");
-    navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "user" }, audio: false
-    }).then(stream => {
-      video.srcObject = stream;
-    }).catch(err => {
-      alert("Camera access denied");
-    });
+    // const video = document.getElementById("video");
+    // navigator.mediaDevices.getUserMedia({
+    //   video: { facingMode: "user" }, audio: false
+    // }).then(stream => {
+    //   video.srcObject = stream;
+    // }).catch(err => {
+    //   alert("Camera access denied");
+    // });
 
   //    // Get GPS location and convert to address
   //    function locationclick(){
@@ -291,8 +288,10 @@ socket.on("error-message",(message)=>{
   function sendCancelAttendance(reason = "⚠️ You exited the session") {
     if (cancelSent) return;
     cancelSent = true;
-    alert(reason);
-    socket.emit("cancel-attendance", { roomName, entryKey });
+   
+   
+    
+     socket.emit("cancel-attendance", { roomName, entryKey });
 
     // Clear local storage
     localStorage.removeItem(`allowed-${roomName}`);
@@ -338,6 +337,8 @@ socket.on("error-message",(message)=>{
 
   //attendance marked 
   socket.on("attendence-marked",()=>{
+   sendCancelAttendance=()=>{};
+
     localStorage.clear();
        window.location.href = "/success";
   });

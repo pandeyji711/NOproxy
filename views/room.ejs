@@ -163,7 +163,7 @@
     <th>Name</th>
     <th>Roll No</th>
     <th>Admission ID</th>
-          <th>Selfie</th>
+    
   </tr>
 </thead>
       <tbody></tbody>
@@ -377,7 +377,7 @@ document.getElementById("downloadExcel").onclick = () => {
 
 let participantIndex = 1;
 
-socket.on("new-participant", ({ name, roll, entryKey,admission,selfie  }) => {
+socket.on("new-participant", ({ name, roll, entryKey,admission }) => {
     // console.log(validEntryKeys.get(roomName).has(entryKey))
            // Request location
 
@@ -397,7 +397,7 @@ socket.on("new-participant", ({ name, roll, entryKey,admission,selfie  }) => {
     <td>${name || "-"}</td>
     <td>${roll || "-"}</td>
     <td>${admission || "-"}</td>
-        <td><img class="selfie" src="${selfie}" alt="Selfie" /></td>
+  
   `;
   participantsTable.appendChild(row);
 });
