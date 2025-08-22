@@ -159,7 +159,6 @@
     <table border="1" id="participantsTable">
    <thead>
   <tr>
-    <th>#</th>
     <th>Name</th>
     <th>Roll No</th>
     <th>Admission ID</th>
@@ -393,7 +392,6 @@ socket.on("new-participant", ({ name, roll, entryKey,admission }) => {
   const row = document.createElement("tr");
     row.id=entryKey;
   row.innerHTML = `
-    <td>${participantIndex++}</td>
     <td>${name || "-"}</td>
     <td>${roll || "-"}</td>
     <td>${admission || "-"}</td>

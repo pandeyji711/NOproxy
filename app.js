@@ -15,14 +15,13 @@ const adminSockets = new Map(); // NEW: { roomName => socket.id }
 const validEntryKeys = new Map();
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
-app.use(express.static(path.join(__dirname, "public")));
 
 // Routes
 app.get("/", (req, res) => res.render("index"));
 app.get("/room/:roomName", (req, res) => {
   const roomName = req.params.roomName;
   if (!createdRooms.has(roomName)) return res.redirect("/");
-  const time = parseInt(req.query.time) || 3;
+  const time = parseInt(req.query.time) || 1;
   res.render("room", { roomName, time });
 });
 
@@ -128,7 +127,7 @@ io.on("connection", (socket) => {
   //  Participant submits details via form
   socket.on(
     "participant-details",
-    async ({ roomName, name, roll, admission, entryKey, selfie }) => {
+    async ({ roomName, name, roll, admission, entryKey }) => {
       const et = entryKey;
       // console.log(et);
       // for (const [key, value] of validEntryKeys.entries()) {

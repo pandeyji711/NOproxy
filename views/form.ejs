@@ -129,7 +129,7 @@
       <!-- <video id="video" autoplay playsinline width="300" height="200"></video>
     <canvas id="canvas" width="300" height="200" style="display:none;"></canvas> -->
 
-   <button type="submit">Submit</button>
+   <button type="submit" id="submitbtn">Submit</button>
   </form>
     
   <!-- <form id="camerax">
@@ -182,6 +182,9 @@ socket.on("connect", () => {
   form.onsubmit = (e) => {
   e.preventDefault();
      
+     const submitbtn=document.getElementById("submitbtn");
+     submitbtn.innerHTML="submiting..."
+     submitbtn.disabled = true;
 
   const name = document.getElementById("name").value.trim();
   const roll = document.getElementById("roll").value.trim();
