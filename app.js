@@ -6,7 +6,7 @@ const jwt = require("jsonwebtoken");
 const ExcelJS = require("exceljs");
 const app = express();
 const server = http.createServer(app);
-const io = socketIO(server);
+const io = socketIO(server, { pingInterval: 1000, pingTimeout: 1000 });
 
 const SECRET = "supersecretkey";
 const createdRooms = new Set();
@@ -33,10 +33,52 @@ app.get("/form/:roomName", (req, res) => {
 app.get("/success", (req, res) => {
   res.render("success");
 });
+//
+//functions
+async function cancelAttendance(student, { roomName, entryKey }) {
+  if (!student) {
+    return;
+  }
+  const isValid =
+    validEntryKeys.has(roomName) && validEntryKeys.get(roomName).has(entryKey);
 
+  if (!isValid && student) {
+    console.error(
+      "error-message",
+      " Invalid or expired entry key" + roomName + " " + entryKey
+    );
+    return;
+  }
+  try {
+    const roomSockets = await io.in(roomName).fetchSockets();
+    const adminSocket = roomSockets.find(
+      (s) => s.handshake.auth?.admin === true
+    );
+
+    if (adminSocket) {
+      //  Send to admin only
+      adminSocket.emit("cancel-attendance", {
+        entryKey,
+        roomName,
+      });
+    } else {
+      console.error("error-message", "Admin not available in room");
+    }
+    validEntryKeys.get(roomName).delete(entryKey);
+  } catch (err) {
+    console.error(" Error during cancel attendance", err);
+    // socket.emit("error-message", "Server error ");
+  }
+}
 // Socket.IO
 io.on("connection", (socket) => {
   const { admin } = socket.handshake.auth || {};
+  const { roomname, entryKey, student } = socket.handshake.auth || {};
+
+  // Save in socket.data for later use
+  socket.data.roomName = roomname;
+  socket.data.entryKey = entryKey;
+  socket.data.student = student;
   if (admin === true && socket.handshake.query?.room) {
     const roomName = socket.handshake.query.room;
     adminSockets.set(roomName, socket.id);
@@ -177,34 +219,8 @@ io.on("connection", (socket) => {
     }
   );
   socket.on("cancel-attendance", async ({ roomName, entryKey }) => {
-    const isValid =
-      validEntryKeys.has(roomName) &&
-      validEntryKeys.get(roomName).has(entryKey);
-
-    if (!isValid) {
-      socket.emit("error-message", " Invalid or expired entry key");
-      return;
-    }
-    try {
-      const roomSockets = await io.in(roomName).fetchSockets();
-      const adminSocket = roomSockets.find(
-        (s) => s.handshake.auth?.admin === true
-      );
-
-      if (adminSocket) {
-        //  Send to admin only
-        adminSocket.emit("cancel-attendance", {
-          entryKey,
-          roomName,
-        });
-      } else {
-        socket.emit("error-message", "Admin not available in room");
-      }
-      validEntryKeys.get(roomName).delete(entryKey);
-    } catch (err) {
-      console.error(" Error during cancel attendance", err);
-      socket.emit("error-message", "Server error ");
-    }
+    const { student } = socket.data || {};
+    // await cancelAttendance(student, { roomName, entryKey });
   });
   //addendence sucess
   socket.on("attendence-marked", async ({ roomName }) => {
@@ -231,7 +247,10 @@ io.on("connection", (socket) => {
     validEntryKeys.get(roomName).add(entryKey);
   });
 
-  socket.on("disconnect", () => {
+  socket.on("disconnect", async () => {
+    const { roomName, entryKey, student } = socket.data || {};
+
+    await cancelAttendance(student, { roomName, entryKey });
     for (const [roomName, adminSocketId] of adminSockets.entries()) {
       if (socket.id === adminSocketId) {
         // console.log(` Admin left room: ${roomName} — cleaning up`);

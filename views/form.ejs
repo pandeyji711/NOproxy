@@ -155,14 +155,19 @@ if (submitted === "yes") {
   alert("You already submitted your details ! Access denied.");
   window.location.href = "/";
 }
-
+const roomname=localStorage.getItem("roomname");
    const socket = io({
   auth: {
     admin: false,
+    student:true,
+    roomname:roomname,
+    entryKey:entryKey
+    
   },
 });
-const roomname=localStorage.getItem("roomname");
+
 socket.on("connect", () => {
+  
   socket.emit("Rejoin-room", roomname);  // Tell server to Rejoin
 
 });
@@ -326,6 +331,9 @@ socket.on("error-message",(message)=>{
   document.addEventListener("fullscreenchange", handleFullscreenExit);
   document.addEventListener("webkitfullscreenchange", handleFullscreenExit);
 
+  socket.on("show-alert", (data) => {
+  alert(data.message);
+});
   // Start fullscreen mode on confirmation
   socket.on("entry-confirmed", () => {
     document.body.innerHTML = '';
@@ -337,7 +345,9 @@ socket.on("error-message",(message)=>{
     if (el.requestFullscreen) el.requestFullscreen();
     else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
   });
-
+  socket.on("disconnect",()=>{
+       alert("Your attandence canceled...");
+  });
   //attendance marked 
   socket.on("attendence-marked",()=>{
    sendCancelAttendance=()=>{};
