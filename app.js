@@ -6,7 +6,7 @@ const jwt = require("jsonwebtoken");
 const ExcelJS = require("exceljs");
 const app = express();
 const server = http.createServer(app);
-const io = socketIO(server, { pingInterval: 1000, pingTimeout: 1000 });
+const io = socketIO(server, { pingInterval: 3000, pingTimeout: 3000 });
 
 const SECRET = "supersecretkey";
 const createdRooms = new Set();
