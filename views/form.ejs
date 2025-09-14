@@ -296,11 +296,6 @@ socket.on("error-message",(message)=>{
   function sendCancelAttendance(reason = "⚠️ You exited the session") {
     if (cancelSent) return;
     cancelSent = true;
-   
-   
-    
-     socket.emit("cancel-attendance", { roomName, entryKey });
-
     // Clear local storage
     localStorage.removeItem(`allowed-${roomName}`);
     localStorage.removeItem(`entryKey-${roomName}`);

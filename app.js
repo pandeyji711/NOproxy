@@ -8,7 +8,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIO(server, { pingInterval: 3000, pingTimeout: 3000 });
 
-const SECRET = "supersecretkey";
+const SECRET = "Super@%^&$%@0987890";
 const createdRooms = new Set();
 const adminCodeState = {}; // { roomName: { code, generatedAt } }
 const adminSockets = new Map(); // NEW: { roomName => socket.id }
@@ -43,10 +43,10 @@ async function cancelAttendance(student, { roomName, entryKey }) {
     validEntryKeys.has(roomName) && validEntryKeys.get(roomName).has(entryKey);
 
   if (!isValid && student) {
-    console.error(
-      "error-message",
-      " Invalid or expired entry key" + roomName + " " + entryKey
-    );
+    // console.error(
+    //   "error-message",
+    //   " Invalid or expired entry key" + roomName + " " + entryKey
+    // );
     return;
   }
   try {
@@ -218,10 +218,10 @@ io.on("connection", (socket) => {
       }
     }
   );
-  socket.on("cancel-attendance", async ({ roomName, entryKey }) => {
-    const { student } = socket.data || {};
-    // await cancelAttendance(student, { roomName, entryKey });
-  });
+  // socket.on("cancel-attendance", async ({ roomName, entryKey }) => {
+  //   const { student } = socket.data || {};
+  //   // await cancelAttendance(student, { roomName, entryKey });
+  // });
   //addendence sucess
   socket.on("attendence-marked", async ({ roomName }) => {
     try {
@@ -249,7 +249,7 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", async () => {
     const { roomName, entryKey, student } = socket.data || {};
-
+    console.log("out..");
     await cancelAttendance(student, { roomName, entryKey });
     for (const [roomName, adminSocketId] of adminSockets.entries()) {
       if (socket.id === adminSocketId) {

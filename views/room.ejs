@@ -281,13 +281,13 @@ socket.on("cancel-attendance",({ roomName, entryKey })=>{
           }
           console.log(entryKey+" removed");
 })
-      window.addEventListener("beforeunload", () => {
-        clearInterval(intervalId);
-        clearInterval(countdownInterval);
-        localStorage.removeItem(`token-${roomName}`);
-        localStorage.removeItem(`allowed-${roomName}`);
-        socket.emit("secret-code", { roomName, code: "❌ Admin Left", token });
-      });
+      // window.addEventListener("beforeunload", () => {
+      //   clearInterval(intervalId);
+      //   clearInterval(countdownInterval);
+      //   localStorage.removeItem(`token-${roomName}`);
+      //   localStorage.removeItem(`allowed-${roomName}`);
+      //   socket.emit("secret-code", { roomName, code: "❌ Admin Left", token });
+      // });
 
 
 document.getElementById("downloadExcel").onclick = () => {
@@ -343,7 +343,7 @@ document.getElementById("downloadExcel").onclick = () => {
     // 5. Export to file
     XLSX.writeFile(workbook, `${roomName} NoProxy_Attendance_Report.xlsx`, { cellStyles: true });
   };
-    socket.on("secret-code", ({ code, generatedAt ,second}) => {
+    socket.on("secret-code", ({ code, generatedAt}) => {
       currentSecret = code;
       
       if (countdownInterval) clearInterval(countdownInterval);
