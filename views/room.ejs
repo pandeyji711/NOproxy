@@ -172,29 +172,7 @@
 <button id="downloadExcel">⬇️ Download Excel</button>
 
   <script>
-
-
-
-const validEntryKeys = new Map();
  let userLocation = null;
-//  async  function  getLocation() {
-//   navigator.geolocation.getCurrentPosition(
-//       async (pos) => 
-//       {
-//     const  { latitude, longitude } = await pos.coords;
-//           userLocation={ latitude, longitude };
-//            console.log(userLocation);
-//       }, () => {
-//         document.getElementById("address").innerText = "Permission denied or unavailable.";
-//       },{
-//   enableHighAccuracy: true,
-//   timeout: 10000,
-//   maximumAge: 0
-// });
-
-    // console.log(userLocation);
-  // }
-//  getLocation();
     const roomName = "<%= roomName %>";
     const time="<%= time %>";
      const time1=time*1000;
@@ -291,18 +269,20 @@ socket.on("cancel-attendance",({ roomName, entryKey })=>{
 
 
 document.getElementById("downloadExcel").onclick = () => {
+     
+      const roomKey = `participants-${roomName}`;
+  const participantsData = JSON.parse(localStorage.getItem(roomKey)) || [];
+    if (participantsData.length === 0) {
+    alert("No data available.");
+    return;
+   }  
     const qr=document.getElementById("remove").remove();
     removerow= ()=>{};
     removeStudentByEntryKey=()=>{};
     socket.emit("attendence-marked", { roomName: roomName });
-    // Dummy participant data — replace with your actual data
-      const roomKey = `participants-${roomName}`;
-  const participantsData = JSON.parse(localStorage.getItem(roomKey)) || [];
 
-  if (participantsData.length === 0) {
-    alert("No data available.");
-    return;
-  }
+
+
 
   const formattedData = participantsData.map(p => ({
   "Name": p.name,
@@ -431,72 +411,74 @@ socket.on("cancel-attendance",({ roomName, entryKey })=>{
           }
           console.log(entryKey+" removed");
 })
-      window.addEventListener("beforeunload", () => {
-        clearInterval(intervalId);
-        clearInterval(countdownInterval);
-        localStorage.removeItem(`token-${roomName}`);
-        localStorage.removeItem(`allowed-${roomName}`);
-        socket.emit("secret-code", { roomName, code: "❌ Admin Left", token });
-      });
+      // window.addEventListener("beforeunload", () => {
+      //   clearInterval(intervalId);
+      //   clearInterval(countdownInterval);
+      //   localStorage.removeItem(`token-${roomName}`);
+      //   localStorage.removeItem(`allowed-${roomName}`);
+      //   socket.emit("secret-code", { roomName, code: "❌ Admin Left", token });
+      // });
 
 
-document.getElementById("downloadExcel").onclick = () => {
-    const qr=document.getElementById("remove");
-    if(qr)
-    {
-      qr.remove();
-    }
-    removerow= ()=>{};
-    removeStudentByEntryKey=()=>{};
-    socket.emit("attendence-marked", { roomName: roomName });
-    // Dummy participant data — replace with your actual data
-      const roomKey = `participants-${roomName}`;
-  const participantsData = JSON.parse(localStorage.getItem(roomKey)) || [];
+// document.getElementById("downloadExcel").onclick = () => {
+//        const roomKey = `participants-${roomName}`;
+//   const participantsData = JSON.parse(localStorage.getItem(roomKey)) || [];
+//     if (participantsData.length === 0) {
+//     alert("No data available.");
+//     return;
+//   }
+//     const qr=document.getElementById("remove");
+//     if(qr)
+//     {
+//       qr.remove();
+//     }
+//     removerow= ()=>{};
+//     removeStudentByEntryKey=()=>{};
+//     socket.emit("attendence-marked", { roomName: roomName });
+//     // Dummy participant data — replace with your actual data
+ 
 
-  if (participantsData.length === 0) {
-    alert("No data available.");
-    return;
-  }
 
-  const formattedData = participantsData.map(p => ({
-  "Name": p.name,
-  "Roll No.": p.roll,
-  "Admission No.": p.admission,
-}));
 
-    // 1. Create worksheet and workbook
-    const worksheet = XLSX.utils.json_to_sheet(formattedData);
+//   const formattedData = participantsData.map(p => ({
+//   "Name": p.name,
+//   "Roll No.": p.roll,
+//   "Admission No.": p.admission,
+// }));
 
-    // 2. Auto width calculation
-    const columnWidths = Object.keys(participantsData[0]).map(key => {
-      const maxLength = Math.max(
-        key.length,
-        ...participantsData.map(p => (p[key] ? p[key].toString().length : 0))
-      );
-      return { wch: maxLength + 1 }; // +2 padding
-    });
-    worksheet['!cols'] = columnWidths;
+//     // 1. Create worksheet and workbook
+//     const worksheet = XLSX.utils.json_to_sheet(formattedData);
 
-    // 3. Workbook creation
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Participant Report");
+//     // 2. Auto width calculation
+//     const columnWidths = Object.keys(participantsData[0]).map(key => {
+//       const maxLength = Math.max(
+//         key.length,
+//         ...participantsData.map(p => (p[key] ? p[key].toString().length : 0))
+//       );
+//       return { wch: maxLength + 1 }; // +2 padding
+//     });
+//     worksheet['!cols'] = columnWidths;
 
-    // 4. Styling: Add bold headers (manually mark them)
-    const headerRange = XLSX.utils.decode_range(worksheet['!ref']);
-    for (let C = headerRange.s.c; C <= headerRange.e.c; ++C) {
-      const cellAddress = XLSX.utils.encode_cell({ c: C, r: 0 });
-      if (worksheet[cellAddress]) {
-        worksheet[cellAddress].s = {
-          font: { bold: true },
-          fill: { fgColor: { rgb: "DCE6F1" } },
-          alignment: { horizontal: "center" }
-        };
-      }
-    }
-  //  socket.emit("verified",{roomName});
-    // 5. Export to file
-    XLSX.writeFile(workbook, `${roomName} NoProxy_Attendance_Report.xlsx`, { cellStyles: true });
-  };
+//     // 3. Workbook creation
+//     const workbook = XLSX.utils.book_new();
+//     XLSX.utils.book_append_sheet(workbook, worksheet, "Participant Report");
+
+//     // 4. Styling: Add bold headers (manually mark them)
+//     const headerRange = XLSX.utils.decode_range(worksheet['!ref']);
+//     for (let C = headerRange.s.c; C <= headerRange.e.c; ++C) {
+//       const cellAddress = XLSX.utils.encode_cell({ c: C, r: 0 });
+//       if (worksheet[cellAddress]) {
+//         worksheet[cellAddress].s = {
+//           font: { bold: true },
+//           fill: { fgColor: { rgb: "DCE6F1" } },
+//           alignment: { horizontal: "center" }
+//         };
+//       }
+//     }
+//   //  socket.emit("verified",{roomName});
+//     // 5. Export to file
+//     XLSX.writeFile(workbook, `${roomName} NoProxy_Attendance_Report.xlsx`, { cellStyles: true });
+//   };
 
   </script>
 </body>
